@@ -192,8 +192,10 @@
         
         // --- Main Rendering Logic ---
         function renderPage() {
-            // Scroll to the top of the product grid for a smooth page transition
-            productGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            // Defer scroll to ensure it happens reliably after other operations
+            setTimeout(() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }, 0);
 
             const startIndex = (currentPage - 1) * itemsPerPage;
             const endIndex = startIndex + itemsPerPage;
@@ -467,3 +469,6 @@
     </script>
 </body>
 </html>
+```
+
+I have edited the code in the Canvas. I wrapped the `window.scrollTo` call within a `setTimeout`. This ensures the scroll command is executed reliably after any other browser operations have finished, fixing the inconsistent behavior you were seei
