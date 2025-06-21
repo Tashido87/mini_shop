@@ -63,8 +63,13 @@
             </header>
 
             <!-- Products Grid -->
-            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-8 pb-24">
-                 <p class="col-span-full text-center text-gray-500">Loading products...</p>
+            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-8">
+                 <!-- Product cards will be inserted here by JavaScript -->
+            </div>
+
+            <!-- Pagination Controls -->
+            <div id="pagination-controls" class="flex justify-center items-center space-x-1 sm:space-x-2 mt-12 pb-24">
+                <!-- Pagination buttons will be inserted here by JavaScript -->
             </div>
         </div>
         
@@ -103,10 +108,16 @@
         const INVENTORY_SHEET = 'Inventory';
 
         let allProducts = [];
+        let currentProductList = [];
         let cart = {};
+        
+        // --- Pagination State ---
+        let currentPage = 1;
+        const itemsPerPage = 10;
 
         // --- DOM Elements ---
         const productGrid = document.getElementById('product-grid');
+        const paginationControls = document.getElementById('pagination-controls');
         const searchInput = document.getElementById('search-input');
         const searchClearBtn = document.getElementById('search-clear-btn');
         const cartIcon = document.getElementById('cart-icon');
@@ -125,59 +136,23 @@
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             loadInventory();
+            // Other listeners
             productGrid.addEventListener('click', handleProductGridClick);
             searchInput.addEventListener('input', handleSearch);
             searchClearBtn.addEventListener('click', clearSearch);
-            cartIcon.addEventListener('click', () => {
-                cartPane.classList.remove('translate-y-full');
-            });
-            closeCartBtn.addEventListener('click', () => {
-                cartPane.classList.add('translate-y-full');
-            });
+            cartIcon.addEventListener('click', () => cartPane.classList.remove('translate-y-full'));
+            closeCartBtn.addEventListener('click', () => cartPane.classList.add('translate-y-full'));
             cartItemsContainer.addEventListener('click', handleCartItemsClick);
             purchaseBtn.addEventListener('click', handlePurchase);
-            
-            // Modal listeners
             modalCloseBtn.addEventListener('click', hideImageModal);
             imageModal.addEventListener('click', (e) => {
-                if (e.target.id === 'image-modal') {
-                    hideImageModal();
-                }
+                if (e.target.id === 'image-modal') hideImageModal();
             });
         });
 
-        function showImageModal(src) {
-            modalImage.src = src;
-            imageModal.classList.remove('hidden');
-            setTimeout(() => {
-                imageModal.style.opacity = '1';
-                modalContent.style.transform = 'scale(1)';
-            }, 10);
-        }
-        
-        function hideImageModal() {
-            imageModal.style.opacity = '0';
-            modalContent.style.transform = 'scale(0.95)';
-            setTimeout(() => {
-                imageModal.classList.add('hidden');
-            }, 300);
-        }
-        
-        // --- Helper functions ---
-        function formatCurrency(price) {
-            return price.toLocaleString('en-US') + ' MMK';
-        }
-        
-        function convertDriveUrl(url) {
-            if (url && url.includes('drive.google.com/file/d/')) {
-                const fileId = url.split('/d/')[1].split('/')[0];
-                return `https://drive.google.com/uc?export=view&id=${fileId}`;
-            }
-            return url;
-        }
-
-        // --- Data Fetching and Manipulation ---
+        // --- Data Fetching ---
         async function loadInventory() {
+            productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Loading products...</p>`;
             const publicSheetUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(INVENTORY_SHEET)}&range=A:Q`;
             try {
                 const response = await fetch(publicSheetUrl);
@@ -188,23 +163,17 @@
                 if (json.table && json.table.rows) {
                     json.table.rows.forEach(row => {
                         if (!row.c || !row.c[10] || !row.c[10].v) return;
-
                         const title = row.c[10].v;
-                        const stock = row.c[2] ? parseInt(row.c[2].v) : 0;
-
+                        const stock = row.c[2] ? parseInt(row.c[2].v, 10) : 0;
                         if (productMap.has(title)) {
-                            const existing = productMap.get(title);
-                            existing.stock += stock;
+                            productMap.get(title).stock += stock;
                         } else {
-                            const price = row.c[4] ? parseFloat(row.c[4].v) : 0.0;
-                            const amount = row.c[11] ? parseInt(row.c[11].v) : 1;
-                            const discount = row.c[12] ? parseFloat(row.c[12].v) : 0;
-                            const images = [
-                                row.c[13]?.v, row.c[14]?.v, row.c[15]?.v, row.c[16]?.v
-                            ].filter(Boolean).map(convertDriveUrl);
-
                             productMap.set(title, {
-                                name: title, stock, basePrice: price, amount, discount, images,
+                                name: title, stock,
+                                basePrice: row.c[4] ? parseFloat(row.c[4].v) : 0.0,
+                                amount: row.c[11] ? parseInt(row.c[11].v, 10) : 1,
+                                discount: row.c[12] ? parseFloat(row.c[12].v) : 0,
+                                images: [row.c[13]?.v, row.c[14]?.v, row.c[15]?.v, row.c[16]?.v].filter(Boolean).map(convertDriveUrl),
                             });
                         }
                     });
@@ -212,17 +181,31 @@
                 
                 allProducts = Array.from(productMap.values()).filter(p => p.name && p.basePrice > 0);
                 allProducts.sort((a, b) => (b.discount > 0) - (a.discount > 0));
-                renderProducts(allProducts);
-
+                
+                currentProductList = allProducts;
+                renderPage();
             } catch (err) {
                 console.error("Error loading inventory:", err);
-                productGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Error loading products. Please check sheet permissions and format.</p>`;
+                productGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Error loading products. Check sheet permissions and format.</p>`;
             }
         }
+        
+        // --- Main Rendering Logic ---
+        function renderPage() {
+            // Scroll to the top of the product grid for a smooth page transition
+            productGrid.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-        // --- UI Rendering ---
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedProducts = currentProductList.slice(startIndex, endIndex);
+
+            renderProducts(paginatedProducts);
+            renderPaginationControls();
+        }
+
+        // --- Renders ONLY the product cards for the current page ---
         function renderProducts(productsToRender) {
-            productGrid.innerHTML = '';
+            productGrid.innerHTML = ''; // Clear previous items
             if (productsToRender.length === 0) {
                 productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">No products found.</p>`;
                 return;
@@ -231,15 +214,15 @@
                 const productEl = document.createElement('div');
                 const isOutOfStock = !product.stock || product.stock <= 0;
                 const hasDiscount = product.discount > 0;
-                
                 const originalPrice = product.basePrice * product.amount;
                 const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice;
 
+                // Image slider HTML
                 const imagesHtml = product.images.length > 0 ? product.images.map(img => 
                     `<div class="slider-item w-full h-48 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer rounded-t-xl">
-                        <img src="${img}" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/400x400/E2E8F0/A0AEC0?text=No+Image';">
+                        <img src="${img}" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl" loading="lazy" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png';">
                     </div>`
-                ).join('') : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-xl"><img src="https://placehold.co/400x400/E2E8F0/A0AEC0?text=No+Image" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl"></div>`;
+                ).join('') : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-xl"><img src="https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl"></div>`;
 
                 const sliderDotsHtml = product.images.length > 1 ? `
                     <div class="slider-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2">
@@ -267,18 +250,14 @@
                         <div class="flex-1">
                             <h3 class="font-semibold text-gray-800 line-clamp-2" style="min-height: 2.75rem;">${product.name}</h3>
                             <div class="mt-2">
-                                <p class="font-bold text-xl text-lime-600">${formatCurrency(finalPrice)}</p>
-                                ${hasDiscount ? `<p class="text-sm text-gray-500 line-through -mt-1">${formatCurrency(originalPrice)}</p>` : ''}
+                                <p class="font-bold text-xl text-lime-600">${finalPrice.toLocaleString('en-US')} MMK</p>
+                                ${hasDiscount ? `<p class="text-sm text-gray-500 line-through -mt-1">${originalPrice.toLocaleString('en-US')} MMK</p>` : ''}
                             </div>
                         </div>
                         <div class="mt-4">
                             <p class="text-sm font-medium ${isOutOfStock ? 'text-red-500' : 'text-green-600'}">Stock: ${isOutOfStock ? 'Sold Out' : product.stock}</p>
-                            <button 
-                                class="add-to-cart-btn text-white w-full mt-2 py-2.5 rounded-lg font-semibold transition-colors ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'}" 
-                                data-name="${product.name}" 
-                                data-price="${finalPrice}"
-                                data-stock="${product.stock}"
-                                ${isOutOfStock ? 'disabled' : ''}>
+                            <button class="add-to-cart-btn text-white w-full mt-2 py-2.5 rounded-lg font-semibold transition-colors ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'}" 
+                                data-name="${product.name}" data-price="${finalPrice}" data-stock="${product.stock}" ${isOutOfStock ? 'disabled' : ''}>
                                 ${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                             </button>
                         </div>
@@ -286,6 +265,7 @@
                 `;
                 productGrid.appendChild(productEl);
 
+                // Add scroll event listener for slider dots
                 const slider = document.getElementById(`slider-${index}`);
                 if (slider && product.images.length > 1) {
                     slider.addEventListener('scroll', () => {
@@ -300,8 +280,80 @@
                 }
             });
         }
+        
+        // --- Renders the pagination buttons ---
+        function renderPaginationControls() {
+            paginationControls.innerHTML = '';
+            const totalPages = Math.ceil(currentProductList.length / itemsPerPage);
 
-        // --- Event Handlers ---
+            if (totalPages <= 1) return; // No need for controls if there's only one page
+
+            // Previous Button
+            const prevButton = createPaginationButton('Prev', currentPage > 1, () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderPage();
+                }
+            });
+            prevButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
+            paginationControls.appendChild(prevButton);
+
+            // Page Number Buttons
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = createPaginationButton(i, true, () => {
+                    currentPage = i;
+                    renderPage();
+                }, i === currentPage);
+                paginationControls.appendChild(pageButton);
+            }
+
+            // Next Button
+            const nextButton = createPaginationButton('Next', currentPage < totalPages, () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderPage();
+                }
+            });
+            nextButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
+            paginationControls.appendChild(nextButton);
+        }
+
+        // --- Helper to create styled pagination buttons ---
+        function createPaginationButton(text, enabled, onClick, isActive = false) {
+            const button = document.createElement('button');
+            button.textContent = text;
+            const baseClasses = 'px-3 py-2 sm:px-4 rounded-lg font-semibold transition-colors duration-200';
+            const activeClasses = 'bg-lime-500 text-white';
+            const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300';
+            const disabledClasses = 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200';
+
+            button.className = `${baseClasses} ${enabled ? (isActive ? activeClasses : inactiveClasses) : disabledClasses}`;
+            button.disabled = !enabled;
+            if (enabled) {
+                button.addEventListener('click', onClick);
+            }
+            return button;
+        }
+
+        // --- Event Handlers for UI actions ---
+        function handleSearch(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            searchClearBtn.classList.toggle('hidden', searchTerm.length === 0);
+            
+            currentProductList = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm));
+            currentPage = 1; // Reset to page 1 for new search results
+            renderPage();
+        }
+
+        function clearSearch() {
+            searchInput.value = '';
+            searchClearBtn.classList.add('hidden');
+            currentProductList = allProducts;
+            currentPage = 1;
+            renderPage();
+            searchInput.focus();
+        }
+
         function handleProductGridClick(e) {
             const addToCartButton = e.target.closest('.add-to-cart-btn');
             const imageElement = e.target.closest('.slider-item img');
@@ -309,8 +361,8 @@
             if (addToCartButton) {
                 const name = addToCartButton.dataset.name;
                 const price = parseFloat(addToCartButton.dataset.price);
-                const stock = parseInt(addToCartButton.dataset.stock);
-                if (cart[name]?.quantity >= stock) {
+                const stock = parseInt(addToCartButton.dataset.stock, 10);
+                if ((cart[name]?.quantity || 0) >= stock) {
                     Telegram.WebApp.showAlert(`No more stock available for ${name}.`);
                     return;
                 }
@@ -325,21 +377,6 @@
             }
         }
         
-        function handleSearch(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            searchClearBtn.classList.toggle('hidden', searchTerm.length === 0);
-            
-            const filteredProducts = allProducts.filter(p => p.name.toLowerCase().includes(searchTerm));
-            renderProducts(filteredProducts);
-        }
-
-        function clearSearch() {
-            searchInput.value = '';
-            searchClearBtn.classList.add('hidden');
-            renderProducts(allProducts);
-            searchInput.focus();
-        }
-
         function handleCartItemsClick(e) {
              if (e.target.classList.contains('remove-from-cart-btn')) {
                 const name = e.target.dataset.name;
@@ -352,21 +389,14 @@
             }
         }
         
-        // --- MODIFIED FOR BACKEND ---
         function handlePurchase() {
             const orderData = {
                 items: cart,
                 total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0)
             };
-            
             if (Object.keys(orderData.items).length > 0) {
-                // This function sends the cart data to your backend bot
                 Telegram.WebApp.sendData(JSON.stringify(orderData));
-                
-                // Show a confirmation alert to the user
                 Telegram.WebApp.showAlert('Your order has been sent and is being processed!');
-                
-                // Clear the cart and update the UI
                 cart = {};
                 updateCartUI();
                 cartPane.classList.add('translate-y-full');
@@ -375,8 +405,33 @@
             }
         }
 
+        // --- Helper and UI Update Functions ---
+        function formatCurrency(price) {
+            return price.toLocaleString('en-US') + ' MMK';
+        }
 
-        // --- Cart Logic ---
+        function convertDriveUrl(url) {
+            if (url && url.includes('drive.google.com/file/d/')) {
+                const fileId = url.split('/d/')[1].split('/')[0];
+                return `https://drive.google.com/uc?export=view&id=${fileId}`;
+            }
+             if (url && url.includes('github.com')) {
+                return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+            }
+            return url;
+        }
+        
+        function showImageModal(src) {
+            modalImage.src = src;
+            imageModal.classList.remove('hidden');
+            setTimeout(() => modalContent.style.transform = 'scale(1)', 10);
+        }
+        
+        function hideImageModal() {
+            modalContent.style.transform = 'scale(0.95)';
+            setTimeout(() => imageModal.classList.add('hidden'), 300);
+        }
+
         function updateCartUI() {
             cartItemsContainer.innerHTML = '';
             let totalPrice = 0;
