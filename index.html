@@ -6,25 +6,26 @@
     <title>Mini Shop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
+            font-family: 'Lato', sans-serif;
+            background-color: #f7fafc;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
         }
         #cart {
             transition: transform 0.3s ease-in-out;
         }
-        /* Styles for the image slider */
         .slider-container {
             scroll-snap-type: x mandatory;
             scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
+            -webkit-overflow-scrolling: touch;
         }
         .slider-item {
             scroll-snap-align: start;
         }
-        /* Style to clamp long titles to 2 lines */
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-box-orient: vertical;
@@ -33,19 +34,26 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
+        .product-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
-<body class="bg-white">
+<body class="bg-gray-50">
 
     <div id="app-container">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Header -->
-            <header class="mb-6 max-w-xl mx-auto">
-                <h1 class="text-4xl font-bold text-gray-900 text-center">Mini Shop</h1>
-                <div class="relative mt-4">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <input type="text" id="search-input" placeholder="Search for products..." class="w-full bg-gray-100 border-2 border-gray-200 rounded-lg py-2 pl-10 pr-10 focus:outline-none focus:border-green-500">
-                    <button id="search-clear-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
+            <header class="mb-8 max-w-2xl mx-auto text-center">
+                <h1 class="text-5xl font-bold text-gray-800">Mini Shop</h1>
+                <p class="mt-2 text-lg text-gray-600">Your one-stop shop for everything</p>
+                <div class="relative mt-6">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <input type="text" id="search-input" placeholder="Search for products..." class="w-full bg-white border-2 border-gray-300 rounded-full py-3 pl-12 pr-12 focus:outline-none focus:border-lime-500 transition-colors">
+                    <button id="search-clear-btn" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -53,35 +61,35 @@
                 </div>
             </header>
 
-            <!-- Products Grid -->
-            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 pb-24">
+            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-8 pb-24">
                  <p class="col-span-full text-center text-gray-500">Loading products...</p>
             </div>
         </div>
         
-        <!-- Shopping Cart Elements (Floating Icon & Pane) -->
-        <div id="cart-icon" class="hidden fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg cursor-pointer z-10">
+        <div id="cart-icon" class="hidden fixed bottom-8 right-8 bg-lime-500 text-white p-4 rounded-full shadow-lg cursor-pointer z-10 hover:bg-lime-600 transition-transform transform hover:scale-110">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-            <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">0</span>
+            <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1">0</span>
         </div>
-        <div id="cart" class="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-lg rounded-t-2xl transition-transform translate-y-full z-20 md:w-96 md:left-auto md:rounded-l-2xl md:rounded-tr-none">
-            <h2 class="text-2xl font-bold mb-4">Your Cart</h2>
-            <div id="cart-items" class="mb-4 max-h-60 overflow-y-auto"></div>
-            <div class="flex justify-between items-center mb-4">
-                <p class="text-xl font-semibold">Total: <span id="total-price">0 MMK</span></p>
-                <button id="purchase-btn" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600">Purchase</button>
+        <div id="cart" class="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-2xl rounded-t-3xl transition-transform translate-y-full z-20 md:w-96 md:left-auto md:rounded-l-3xl md:rounded-tr-none">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800">Your Cart</h2>
+            <div id="cart-items" class="mb-6 max-h-72 overflow-y-auto pr-2"></div>
+            <div class="border-t pt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-xl font-semibold text-gray-800">Total:</p>
+                    <p id="total-price" class="text-2xl font-bold text-gray-900">0 MMK</p>
+                </div>
+                <button id="purchase-btn" class="w-full bg-lime-500 text-white px-6 py-3 rounded-xl font-semibold text-lg hover:bg-lime-600 transition-colors">Purchase</button>
             </div>
-            <button id="close-cart-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
-                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            <button id="close-cart-btn" class="absolute top-6 right-6 text-gray-400 hover:text-gray-700">
+                <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
     </div>
 
-    <!-- Fullscreen Image Modal -->
-    <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-        <div class="relative">
-            <img id="modal-image" src="" alt="Enlarged product image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg">
-            <button id="modal-close-btn" class="absolute -top-3 -right-3 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center font-bold text-xl shadow-lg">&times;</button>
+    <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+        <div class="relative transform scale-95 transition-transform duration-300">
+            <img id="modal-image" src="" alt="Enlarged product image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl">
+            <button id="modal-close-btn" class="absolute -top-4 -right-4 bg-white text-black rounded-full h-10 w-10 flex items-center justify-center font-bold text-2xl shadow-lg hover:scale-110 transition-transform">&times;</button>
         </div>
     </div>
 
@@ -107,6 +115,8 @@
         const imageModal = document.getElementById('image-modal');
         const modalImage = document.getElementById('modal-image');
         const modalCloseBtn = document.getElementById('modal-close-btn');
+        const modalContent = imageModal.querySelector('.relative');
+
 
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -114,19 +124,40 @@
             productGrid.addEventListener('click', handleProductGridClick);
             searchInput.addEventListener('input', handleSearch);
             searchClearBtn.addEventListener('click', clearSearch);
-            cartIcon.addEventListener('click', () => cartPane.classList.remove('translate-y-full'));
-            closeCartBtn.addEventListener('click', () => cartPane.classList.add('translate-y-full'));
+            cartIcon.addEventListener('click', () => {
+                cartPane.classList.remove('translate-y-full');
+            });
+            closeCartBtn.addEventListener('click', () => {
+                cartPane.classList.add('translate-y-full');
+            });
             cartItemsContainer.addEventListener('click', handleCartItemsClick);
             purchaseBtn.addEventListener('click', handlePurchase);
             
             // Modal listeners
-            modalCloseBtn.addEventListener('click', () => imageModal.classList.add('hidden'));
+            modalCloseBtn.addEventListener('click', hideImageModal);
             imageModal.addEventListener('click', (e) => {
                 if (e.target.id === 'image-modal') {
-                    imageModal.classList.add('hidden');
+                    hideImageModal();
                 }
             });
         });
+
+        function showImageModal(src) {
+            modalImage.src = src;
+            imageModal.classList.remove('hidden');
+            setTimeout(() => {
+                imageModal.style.opacity = '1';
+                modalContent.style.transform = 'scale(1)';
+            }, 10);
+        }
+        
+        function hideImageModal() {
+            imageModal.style.opacity = '0';
+            modalContent.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                imageModal.classList.add('hidden');
+            }, 300);
+        }
         
         // --- Helper functions ---
         function formatCurrency(price) {
@@ -152,49 +183,36 @@
                 const productMap = new Map();
                 if (json.table && json.table.rows) {
                     json.table.rows.forEach(row => {
-                        if (!row.c || !row.c[10] || !row.c[10].v) return; // Skip if no title in Column K
+                        if (!row.c || !row.c[10] || !row.c[10].v) return;
 
                         const title = row.c[10].v;
                         const stock = row.c[2] ? parseInt(row.c[2].v) : 0;
 
                         if (productMap.has(title)) {
-                            // If item exists, just add the stock
                             const existing = productMap.get(title);
                             existing.stock += stock;
                         } else {
-                            // If new item, create the full object
                             const price = row.c[4] ? parseFloat(row.c[4].v) : 0.0;
                             const amount = row.c[11] ? parseInt(row.c[11].v) : 1;
                             const discount = row.c[12] ? parseFloat(row.c[12].v) : 0;
                             const images = [
-                                row.c[13]?.v, // Col N
-                                row.c[14]?.v, // Col O
-                                row.c[15]?.v, // Col P
-                                row.c[16]?.v  // Col Q
+                                row.c[13]?.v, row.c[14]?.v, row.c[15]?.v, row.c[16]?.v
                             ].filter(Boolean).map(convertDriveUrl);
 
                             productMap.set(title, {
-                                name: title,
-                                stock: stock,
-                                basePrice: price,
-                                amount: amount,
-                                discount: discount,
-                                images: images,
+                                name: title, stock, basePrice: price, amount, discount, images,
                             });
                         }
                     });
                 }
                 
                 allProducts = Array.from(productMap.values()).filter(p => p.name && p.basePrice > 0);
-                
-                // Sort products to show discounted items first
                 allProducts.sort((a, b) => (b.discount > 0) - (a.discount > 0));
-
                 renderProducts(allProducts);
 
             } catch (err) {
                 console.error("Error loading inventory:", err);
-                productGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Error loading products. Check sheet permissions and format.</p>`;
+                productGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Error loading products. Please check sheet permissions and format.</p>`;
             }
         }
 
@@ -213,61 +231,57 @@
                 const originalPrice = product.basePrice * product.amount;
                 const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice;
 
-                // Image slider HTML
                 const imagesHtml = product.images.length > 0 ? product.images.map(img => 
-                    `<div class="slider-item w-full h-48 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer">
-                        <img src="${img}" alt="${product.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x400/CCCCCC/FFFFFF?text=No+Image';">
+                    `<div class="slider-item w-full h-48 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer rounded-t-xl">
+                        <img src="${img}" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl" loading="lazy" onerror="this.onerror=null;this.src='https://placehold.co/400x400/E2E8F0/A0AEC0?text=No+Image';">
                     </div>`
-                ).join('') : `<div class="w-full h-48 bg-white flex items-center justify-center"><img src="https://placehold.co/400x400/CCCCCC/FFFFFF?text=No+Image" alt="${product.name}" class="w-full h-full object-cover"></div>`;
+                ).join('') : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-xl"><img src="https://placehold.co/400x400/E2E8F0/A0AEC0?text=No+Image" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl"></div>`;
 
                 const sliderDotsHtml = product.images.length > 1 ? `
                     <div class="slider-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2">
-                        ${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-white bg-opacity-50 ${i === 0 ? 'bg-opacity-100' : ''}" data-index="${i}"></div>`).join('')}
+                        ${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-black bg-opacity-30 ${i === 0 ? 'bg-opacity-75' : ''}" data-index="${i}"></div>`).join('')}
                     </div>
                 ` : '';
 
                 const discountBannerHtml = hasDiscount ? `
-                    <div class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg z-10">
-                        -${formatCurrency(product.discount)}
+                    <div class="absolute top-0 right-0 bg-lime-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl z-10">
+                        SAVE ${formatCurrency(product.discount)}
                     </div>
                 ` : '';
-
-                // Add `flex flex-col` to make the card a flex container, enabling alignment
-                productEl.className = `relative flex flex-col bg-gray-100 rounded-lg shadow overflow-hidden ${hasDiscount ? 'border-2 border-yellow-400' : ''}`;
                 
-                // Restructured for better alignment
+                productEl.className = `product-card relative flex flex-col bg-white rounded-xl shadow-md overflow-hidden ${hasDiscount ? 'border-2 border-lime-500' : ''}`;
+                
                 productEl.innerHTML = `
                     <div class="relative">
-                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory rounded-t-lg" id="slider-${index}">
+                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory" id="slider-${index}">
                             ${imagesHtml}
                         </div>
                         ${sliderDotsHtml}
                         ${discountBannerHtml}
                     </div>
-                    <div class="p-4 flex flex-col flex-1"> <!-- flex-1 makes this content area grow -->
-                        <div> <!-- Text content wrapper -->
-                            <h3 class="font-semibold text-gray-800 line-clamp-2" style="min-height: 2.5rem;">${product.name}</h3>
-                            <div class="mt-1">
-                                ${hasDiscount ? `<p class="text-sm text-gray-500 line-through">${formatCurrency(originalPrice)}</p>` : ''}
-                                <p class="font-bold text-lg text-gray-900">${formatCurrency(finalPrice)}</p>
+                    <div class="p-4 flex flex-col flex-1">
+                        <div class="flex-1">
+                            <h3 class="font-semibold text-gray-800 line-clamp-2" style="min-height: 2.75rem;">${product.name}</h3>
+                            <div class="mt-2">
+                                <p class="font-bold text-xl text-lime-600">${formatCurrency(finalPrice)}</p>
+                                ${hasDiscount ? `<p class="text-sm text-gray-500 line-through -mt-1">${formatCurrency(originalPrice)}</p>` : ''}
                             </div>
-                            <p class="text-sm font-medium ${isOutOfStock ? 'text-red-500' : 'text-gray-600'}">Stock: ${product.stock}</p>
                         </div>
-                        <div class="mt-auto pt-3"> <!-- mt-auto pushes button to the bottom -->
+                        <div class="mt-4">
+                            <p class="text-sm font-medium ${isOutOfStock ? 'text-red-500' : 'text-green-600'}">Stock: ${isOutOfStock ? 'Sold Out' : product.stock}</p>
                             <button 
-                                class="add-to-cart-btn text-white w-full py-2 rounded-lg ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}" 
+                                class="add-to-cart-btn text-white w-full mt-2 py-2.5 rounded-lg font-semibold transition-colors ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'}" 
                                 data-name="${product.name}" 
                                 data-price="${finalPrice}"
                                 data-stock="${product.stock}"
                                 ${isOutOfStock ? 'disabled' : ''}>
-                                ${isOutOfStock ? 'Out of Stock' : 'Add'}
+                                ${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
                             </button>
                         </div>
                     </div>
                 `;
                 productGrid.appendChild(productEl);
 
-                // Add scroll event listener for slider dots
                 const slider = document.getElementById(`slider-${index}`);
                 if (slider && product.images.length > 1) {
                     slider.addEventListener('scroll', () => {
@@ -275,8 +289,8 @@
                         const itemWidth = slider.offsetWidth;
                         const activeIndex = Math.round(scrollLeft / itemWidth);
                         slider.parentElement.querySelectorAll('.dot').forEach((dot, i) => {
-                            dot.classList.toggle('bg-opacity-100', i === activeIndex);
-                            dot.classList.toggle('bg-opacity-50', i !== activeIndex);
+                            dot.classList.toggle('bg-opacity-75', i === activeIndex);
+                            dot.classList.toggle('bg-opacity-30', i !== activeIndex);
                         });
                     });
                 }
@@ -303,8 +317,7 @@
                 }
                 updateCartUI();
             } else if (imageElement) {
-                modalImage.src = imageElement.src;
-                imageModal.classList.remove('hidden');
+                showImageModal(imageElement.src);
             }
         }
         
@@ -336,41 +349,59 @@
         }
         
         function handlePurchase() {
-            const orderData = {
-                items: cart,
-                total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0)
-            };
-            if (Object.keys(orderData.items).length > 0) {
-                Telegram.WebApp.sendData(JSON.stringify(orderData));
-                Telegram.WebApp.showAlert('Your order has been sent!');
-                cart = {};
-                updateCartUI();
-                cartPane.classList.add('translate-y-full');
-            } else {
+            if (Object.keys(cart).length === 0) {
                 Telegram.WebApp.showAlert('Your cart is empty!');
+                return;
             }
+
+            // 1. Format the order into a text message
+            let message = '🎉 New Order Summary:\n\n';
+            let totalPrice = 0;
+
+            for (const name in cart) {
+                const item = cart[name];
+                const itemTotal = item.price * item.quantity;
+                totalPrice += itemTotal;
+                message += `Item: ${name}\n`;
+                message += `Quantity: ${item.quantity}\n`;
+                message += `Price: ${formatCurrency(itemTotal)}\n\n`;
+            }
+            message += `*Total Price: ${formatCurrency(totalPrice)}*`;
+
+            // 2. Create a Telegram share link
+            const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(message)}`;
+
+            // 3. Redirect the user to the share link
+            window.location.href = shareUrl;
+            
+            // 4. Clear the cart and update UI after sharing
+            cart = {};
+            updateCartUI();
+            cartPane.classList.add('translate-y-full');
         }
+
 
         // --- Cart Logic ---
         function updateCartUI() {
             cartItemsContainer.innerHTML = '';
             let totalPrice = 0;
             let totalItems = 0;
-            for (const name in cart) {
-                const item = cart[name];
+            const sortedCartItems = Object.entries(cart).sort((a, b) => a[0].localeCompare(b[0]));
+
+            for (const [name, item] of sortedCartItems) {
                 const itemTotal = item.price * item.quantity;
                 totalPrice += itemTotal;
                 totalItems += item.quantity;
                 const cartItemEl = document.createElement('div');
-                cartItemEl.className = 'flex justify-between items-center mb-2 p-2 rounded-lg bg-gray-50';
+                cartItemEl.className = 'flex justify-between items-center mb-3 p-3 rounded-xl bg-gray-100';
                 cartItemEl.innerHTML = `
                     <div>
-                        <p class="font-semibold">${name}</p>
-                        <p class="text-gray-600 text-sm">Quantity: ${item.quantity}</p>
+                        <p class="font-semibold text-gray-800">${name}</p>
+                        <p class="text-gray-600 text-sm">${item.quantity} &times; ${formatCurrency(item.price)}</p>
                     </div>
                     <div class="flex items-center">
-                        <p class="mr-4 font-semibold">${formatCurrency(itemTotal)}</p>
-                        <button class="remove-from-cart-btn bg-red-500 text-white w-6 h-6 rounded-md flex items-center justify-center" data-name="${name}">-</button>
+                        <p class="mr-4 font-bold text-gray-800">${formatCurrency(itemTotal)}</p>
+                        <button class="remove-from-cart-btn bg-red-500 text-white w-7 h-7 rounded-lg flex items-center justify-center font-bold hover:bg-red-600 transition-colors" data-name="${name}">-</button>
                     </div>
                 `;
                 cartItemsContainer.appendChild(cartItemEl);
