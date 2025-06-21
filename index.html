@@ -47,6 +47,7 @@
 
     <div id="app-container">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Header -->
             <header class="mb-8 max-w-2xl mx-auto text-center">
                 <h1 class="text-5xl font-bold text-gray-800">Mini Shop</h1>
                 <p class="mt-2 text-lg text-gray-600">Your one-stop shop for everything</p>
@@ -61,11 +62,13 @@
                 </div>
             </header>
 
+            <!-- Products Grid -->
             <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-8 pb-24">
                  <p class="col-span-full text-center text-gray-500">Loading products...</p>
             </div>
         </div>
         
+        <!-- Shopping Cart Elements (Floating Icon & Pane) -->
         <div id="cart-icon" class="hidden fixed bottom-8 right-8 bg-lime-500 text-white p-4 rounded-full shadow-lg cursor-pointer z-10 hover:bg-lime-600 transition-transform transform hover:scale-110">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1">0</span>
@@ -86,6 +89,7 @@
         </div>
     </div>
 
+    <!-- Fullscreen Image Modal -->
     <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
         <div class="relative transform scale-95 transition-transform duration-300">
             <img id="modal-image" src="" alt="Enlarged product image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl">
@@ -348,36 +352,27 @@
             }
         }
         
+        // --- MODIFIED FOR BACKEND ---
         function handlePurchase() {
-            if (Object.keys(cart).length === 0) {
-                Telegram.WebApp.showAlert('Your cart is empty!');
-                return;
-            }
-
-            // 1. Format the order into a text message
-            let message = '🎉 New Order Summary:\n\n';
-            let totalPrice = 0;
-
-            for (const name in cart) {
-                const item = cart[name];
-                const itemTotal = item.price * item.quantity;
-                totalPrice += itemTotal;
-                message += `Item: ${name}\n`;
-                message += `Quantity: ${item.quantity}\n`;
-                message += `Price: ${formatCurrency(itemTotal)}\n\n`;
-            }
-            message += `*Total Price: ${formatCurrency(totalPrice)}*`;
-
-            // 2. Create a Telegram share link
-            const shareUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(message)}`;
-
-            // 3. Redirect the user to the share link
-            window.location.href = shareUrl;
+            const orderData = {
+                items: cart,
+                total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            };
             
-            // 4. Clear the cart and update UI after sharing
-            cart = {};
-            updateCartUI();
-            cartPane.classList.add('translate-y-full');
+            if (Object.keys(orderData.items).length > 0) {
+                // This function sends the cart data to your backend bot
+                Telegram.WebApp.sendData(JSON.stringify(orderData));
+                
+                // Show a confirmation alert to the user
+                Telegram.WebApp.showAlert('Your order has been sent and is being processed!');
+                
+                // Clear the cart and update the UI
+                cart = {};
+                updateCartUI();
+                cartPane.classList.add('translate-y-full');
+            } else {
+                Telegram.WebApp.showAlert('Your cart is empty!');
+            }
         }
 
 
