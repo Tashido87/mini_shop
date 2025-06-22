@@ -28,8 +28,8 @@
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
+            -webkit-line-clamp-2;
+            line-clamp-2;
             overflow: hidden;
             text-overflow: ellipsis;
         }
@@ -50,10 +50,12 @@
                 <div class="relative mt-4">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     <input type="text" id="search-input" placeholder="Search for products..." class="w-full bg-gray-100 border-2 border-gray-200 rounded-lg py-2 pl-10 pr-10 focus:outline-none focus:border-green-500">
-                    <button id="search-clear-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                    <button id="purchase-clear-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
+                        <button class="search-clear-btn">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
                     </button>
                 </div>
             </header>
@@ -96,10 +98,9 @@
     <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
         <div class="relative">
             <img id="modal-image" src="" alt="Enlarged product image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg">
-            <button id="modal-close-btn" class="absolute -top-3 -right-3 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center font-bold text-xl shadow-lg">&times;</button>
+            <button id="modal-close-btn" class="absolute -top-3 -right-3 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center font-bold text-xl shadow-lg">×</button>
         </div>
     </div>
-
 
     <script>
         const SPREADSHEET_ID = '1GzdaBH2Hq7LVx9svDkdlMHr01eODjy9haFMTJFIqgI4';
@@ -331,23 +332,38 @@
             }
         }
         
-        function handlePurchase() {
-            const orderData = { items: cart, total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0) };
-            if (Object.keys(orderData.items).length === 0) { safeAlert('Your cart is empty!'); return; }
+        async function handlePurchase() {
+            const orderData = {
+                items: cart,
+                total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                user: Telegram.WebApp.initDataUnsafe.user || { id: 'unknown', username: 'unknown' },
+                orderId: 'ORD-' + Date.now().toString(36)
+            };
+            if (Object.keys(orderData.items).length === 0) {
+                safeAlert('Your cart is empty!');
+                return;
+            }
             
             try {
-                if (typeof Telegram.WebApp.sendData !== 'function') {
-                    throw new Error("sendData is not a function on Telegram.WebApp. Are you in the right environment?");
+                // Send order to Google Apps Script
+                const response = await fetch('YOUR_WEB_APP_URL', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(orderData)
+                });
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    safeAlert(`Order #${orderData.orderId} sent successfully! You will be contacted soon.`);
+                    cart = {};
+                    updateCartUI();
+                    cartPane.classList.add('translate-y-full');
+                } else {
+                    throw new Error(result.message || 'Failed to process order');
                 }
-                Telegram.WebApp.sendData(JSON.stringify(orderData));
-                cart = {};
-                updateCartUI();
-                cartPane.classList.add('translate-y-full');
             } catch (e) {
-                const errorMessage = e.message || JSON.stringify(e);
-                safeAlert(`Error: Could not send order. ${errorMessage}`);
-                console.error("Purchase Error:", e);
-                console.log("Order Data (browser test mode):", JSON.stringify(orderData, null, 2));
+                safeAlert(`Error sending order: ${e.message}`);
+                console.error('Purchase Error:', e);
             }
         }
 
