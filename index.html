@@ -28,8 +28,8 @@
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-box-orient: vertical;
-            -webkit-line-clamp-2;
-            line-clamp-2;
+            -webkit-line-clamp: 2;
+            line-clamp: 2;
             overflow: hidden;
             text-overflow: ellipsis;
         }
@@ -38,45 +38,40 @@
             background-color: #16a34a; /* green-600 */
             color: white;
         }
+        /* Styles for the success overlay transition */
+        #success-overlay {
+            transition: opacity 0.3s ease-in-out;
+        }
     </style>
 </head>
 <body class="bg-white">
 
     <div id="app-container">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Header -->
             <header class="mb-6 max-w-xl mx-auto">
                 <h1 class="text-4xl font-bold text-gray-900 text-center">Mini Shop</h1>
                 <div class="relative mt-4">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                     <input type="text" id="search-input" placeholder="Search for products..." class="w-full bg-gray-100 border-2 border-gray-200 rounded-lg py-2 pl-10 pr-10 focus:outline-none focus:border-green-500">
-                    <button id="purchase-clear-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
-                        <button class="search-clear-btn">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
+                    <button id="search-clear-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                     </button>
                 </div>
             </header>
 
-            <!-- Category Filters -->
             <div id="category-filters" class="flex flex-wrap justify-center gap-2 mb-8">
-                <!-- Category buttons will be inserted here -->
-            </div>
+                </div>
 
-            <!-- Products Grid -->
             <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 pb-4">
                  <p class="col-span-full text-center text-gray-500">Loading products...</p>
             </div>
             
-            <!-- Pagination Controls -->
             <div id="pagination-controls" class="flex justify-center items-center gap-4 mt-8 pb-16">
-                <!-- Pagination buttons will be inserted here -->
-            </div>
+                </div>
         </div>
         
-        <!-- Shopping Cart Elements (Floating Icon & Pane) -->
         <div id="cart-icon" class="hidden fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg cursor-pointer z-10">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
             <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">0</span>
@@ -94,13 +89,23 @@
         </div>
     </div>
 
-    <!-- Fullscreen Image Modal -->
     <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
         <div class="relative">
             <img id="modal-image" src="" alt="Enlarged product image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg">
-            <button id="modal-close-btn" class="absolute -top-3 -right-3 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center font-bold text-xl shadow-lg">×</button>
+            <button id="modal-close-btn" class="absolute -top-3 -right-3 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center font-bold text-xl shadow-lg">&times;</button>
         </div>
     </div>
+
+    <div id="success-overlay" class="hidden opacity-0 fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white p-8 rounded-lg shadow-xl text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 class="text-2xl font-bold text-gray-800">Order Sent!</h2>
+            <p class="text-gray-600 mt-2">Thank you for your purchase.</p>
+        </div>
+    </div>
+
 
     <script>
         const SPREADSHEET_ID = '1GzdaBH2Hq7LVx9svDkdlMHr01eODjy9haFMTJFIqgI4';
@@ -129,6 +134,7 @@
         const imageModal = document.getElementById('image-modal');
         const modalImage = document.getElementById('modal-image');
         const modalCloseBtn = document.getElementById('modal-close-btn');
+        const successOverlay = document.getElementById('success-overlay'); // Get success overlay
 
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -283,14 +289,20 @@
         // --- Event Handlers ---
         function handleCategoryFilter(e) {
             if (e.target.classList.contains('category-btn')) {
-                const selectedCategory = e.target.dataset.category;
-                document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('category-btn-active', 'bg-gray-200', 'text-gray-700'));
+                document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('category-btn-active'));
                 e.target.classList.add('category-btn-active');
-                filteredProducts = (selectedCategory === 'All') ? [...allProducts] : allProducts.filter(p => p.category === selectedCategory);
+                
+                const selectedCategory = e.target.dataset.category;
+                const productsByCategory = (selectedCategory === 'All') ? allProducts : allProducts.filter(p => p.category === selectedCategory);
+                
+                const searchTerm = searchInput.value.toLowerCase();
+                filteredProducts = productsByCategory.filter(p => p.name.toLowerCase().includes(searchTerm));
+                
                 currentPage = 1;
-                handleSearch({target: searchInput});
+                renderPage();
             }
         }
+
 
         function handleProductGridClick(e) {
             const addToCartButton = e.target.closest('.add-to-cart-btn');
@@ -311,9 +323,12 @@
         function handleSearch(e) {
             const searchTerm = e.target.value.toLowerCase();
             searchClearBtn.classList.toggle('hidden', searchTerm.length === 0);
+            
             const activeCategoryBtn = document.querySelector('.category-btn-active');
             const selectedCategory = activeCategoryBtn.dataset.category;
+            
             let productsToSearch = (selectedCategory === 'All') ? allProducts : allProducts.filter(p => p.category === selectedCategory);
+            
             filteredProducts = productsToSearch.filter(p => p.name.toLowerCase().includes(searchTerm));
             currentPage = 1;
             renderPage();
@@ -332,38 +347,39 @@
             }
         }
         
-        async function handlePurchase() {
-            const orderData = {
-                items: cart,
-                total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0),
-                user: Telegram.WebApp.initDataUnsafe.user || { id: 'unknown', username: 'unknown' },
-                orderId: 'ORD-' + Date.now().toString(36)
-            };
+        // --- [MODIFIED] handlePurchase function ---
+        function handlePurchase() {
+            const orderData = { items: cart, total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0) };
             if (Object.keys(orderData.items).length === 0) {
                 safeAlert('Your cart is empty!');
                 return;
             }
             
             try {
-                // Send order to Google Apps Script
-                const response = await fetch('YOUR_WEB_APP_URL', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(orderData)
-                });
-                const result = await response.json();
-                
-                if (result.status === 'success') {
-                    safeAlert(`Order #${orderData.orderId} sent successfully! You will be contacted soon.`);
+                if (typeof Telegram.WebApp.sendData !== 'function') {
+                    throw new Error("sendData is not a function on Telegram.WebApp. Are you in the right environment?");
+                }
+                Telegram.WebApp.sendData(JSON.stringify(orderData));
+
+                // Show the success overlay
+                successOverlay.classList.remove('hidden');
+                setTimeout(() => successOverlay.classList.remove('opacity-0'), 10); // Fade in
+
+                // Hide overlay and reset cart after 2 seconds
+                setTimeout(() => {
+                    successOverlay.classList.add('opacity-0'); // Fade out
+                    setTimeout(() => successOverlay.classList.add('hidden'), 300); // Hide after transition
+
                     cart = {};
                     updateCartUI();
                     cartPane.classList.add('translate-y-full');
-                } else {
-                    throw new Error(result.message || 'Failed to process order');
-                }
+                }, 2000);
+
             } catch (e) {
-                safeAlert(`Error sending order: ${e.message}`);
-                console.error('Purchase Error:', e);
+                const errorMessage = e.message || JSON.stringify(e);
+                safeAlert(`Error: Could not send order. ${errorMessage}`);
+                console.error("Purchase Error:", e);
+                console.log("Order Data (browser test mode):", JSON.stringify(orderData, null, 2));
             }
         }
 
