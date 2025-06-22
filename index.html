@@ -138,7 +138,6 @@
 
 
     <script>
-        // --- All Javascript is identical to the previous version. No changes needed here. ---
         const SPREADSHEET_ID = '1GzdaBH2Hq7LVx9svDkdlMHr01eODjy9haFMTJFIqgI4';
         const INVENTORY_SHEET = 'Inventory';
 
@@ -151,6 +150,7 @@
         let currentPage = 1;
         const itemsPerPage = 10;
 
+        // --- DOM Elements ---
         const appContainer = document.getElementById('app-container');
         const productGrid = document.getElementById('product-grid');
         const paginationControls = document.getElementById('pagination-controls');
@@ -180,6 +180,12 @@
         const detailDescription = document.getElementById('detail-description');
         const detailAddToCartBtn = document.getElementById('detail-add-to-cart-btn');
 
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const SWIPE_BACK_THRESHOLD = 80;
+        const EDGE_START_THRESHOLD = 50; 
+
+        // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             loadInventory();
             productGrid.addEventListener('click', handleProductGridClick);
@@ -194,8 +200,12 @@
             imageModal.addEventListener('click', (e) => e.target.id === 'image-modal' && hideImageModal());
             detailBackBtn.addEventListener('click', hideProductDetail);
             detailAddToCartBtn.addEventListener('click', handleDetailAddToCart);
+            productDetailView.addEventListener('touchstart', handleSwipeStart);
+            productDetailView.addEventListener('touchmove', handleSwipeMove);
+            productDetailView.addEventListener('touchend', handleSwipeEnd);
         });
 
+        // --- Data Fetching ---
         async function loadInventory() {
             productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Loading products...</p>`;
             const publicSheetUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(INVENTORY_SHEET)}&range=A:S`;
@@ -239,202 +249,52 @@
             }
         }
         
-        function applyFiltersAndRender() {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            let filteredProducts = allProducts;
-            if (currentCategory !== 'All') {
-                filteredProducts = filteredProducts.filter(p => p.category === currentCategory);
-            }
-            if (searchTerm) {
-                filteredProducts = filteredProducts.filter(p => p.name.toLowerCase().includes(searchTerm));
-            }
-            currentProductList = filteredProducts;
-            currentPage = 1;
-            renderPage();
-        }
-
-        function renderPage() {
-            productGrid.style.opacity = 0;
-            setTimeout(() => {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                const startIndex = (currentPage - 1) * itemsPerPage;
-                const endIndex = startIndex + itemsPerPage;
-                const paginatedProducts = currentProductList.slice(startIndex, endIndex);
-                renderProducts(paginatedProducts);
-                renderPaginationControls();
-                productGrid.style.opacity = 1;
-            }, 300);
-        }
-        
-        function renderProducts(productsToRender) {
-            productGrid.innerHTML = '';
-            if (productsToRender.length === 0) {
-                productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">No products found.</p>`;
-                return;
-            }
-            productsToRender.forEach((product, index) => {
-                const productEl = document.createElement('div');
-                const isOutOfStock = !product.stock || product.stock <= 0;
-                const hasDiscount = product.discount > 0;
-                const originalPrice = product.basePrice * product.amount;
-                const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice;
-                const imagesHtml = product.images.length > 0 ? product.images.map(img => 
-                    `<div class="slider-item w-full h-48 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer rounded-t-xl">
-                        <img src="${img}" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl product-image" loading="lazy" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png';">
-                    </div>`
-                ).join('') : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-xl"><img src="https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl product-image"></div>`;
-                const sliderDotsHtml = product.images.length > 1 ? `
-                    <div class="slider-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2">
-                        ${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-black bg-opacity-30 ${i === 0 ? 'bg-opacity-75' : ''}" data-index="${i}"></div>`).join('')}
-                    </div>` : '';
-                productEl.className = `product-card relative flex flex-col bg-white rounded-xl shadow-md overflow-hidden ${hasDiscount ? 'border-2 border-orange-500' : ''}`;
-                productEl.dataset.name = product.name;
-                productEl.innerHTML = `
-                    <div class="relative">
-                        <div class="slider-container flex overflow-x-auto snap-x snap-mandatory">${imagesHtml}</div>
-                        ${sliderDotsHtml}
-                        ${hasDiscount ? `<div class="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl z-10">SAVE ${formatCurrency(product.discount)}</div>` : ''}
-                    </div>
-                    <div class="p-4 flex flex-col flex-1">
-                        <div class="flex-1">
-                            <h3 class="font-semibold text-gray-800 line-clamp-2 cursor-pointer hover:text-lime-600 product-title" style="min-height: 2.75rem;">${product.name}</h3>
-                            <div class="mt-2">
-                                <p class="font-bold text-xl text-lime-600">${finalPrice.toLocaleString('en-US')} MMK</p>
-                                ${hasDiscount ? `<p class="text-sm text-gray-500 line-through -mt-1">${originalPrice.toLocaleString('en-US')} MMK</p>` : ''}
-                            </div>
-                        </div>
-                        <div class="mt-4">
-                            <p class="text-sm font-medium ${isOutOfStock ? 'text-red-500' : 'text-green-600'}">Stock: ${isOutOfStock ? 'Sold Out' : product.stock}</p>
-                            <button class="add-to-cart-btn text-white w-full mt-2 py-2.5 rounded-lg font-semibold transition-colors ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'}" ${isOutOfStock ? 'disabled' : ''}>
-                                ${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-                            </button>
-                        </div>
-                    </div>`;
-                productGrid.appendChild(productEl);
-                const slider = productEl.querySelector('.slider-container');
-                if (slider && product.images.length > 1) {
-                    slider.addEventListener('scroll', () => {
-                        const activeIndex = Math.round(slider.scrollLeft / slider.offsetWidth);
-                        slider.parentElement.querySelectorAll('.dot').forEach((dot, i) => {
-                            dot.classList.toggle('bg-opacity-75', i === activeIndex);
-                            dot.classList.toggle('bg-opacity-30', i !== activeIndex);
-                        });
-                    });
-                }
-            });
-        }
-        
-        function handleSearch(e) {
-            searchClearBtn.classList.toggle('hidden', e.target.value.length === 0);
-            applyFiltersAndRender();
-        }
-
-        function clearSearch() {
-            searchInput.value = '';
-            searchClearBtn.classList.add('hidden');
-            applyFiltersAndRender();
-            searchInput.focus();
-        }
-
-        function handleCategoryFilterClick(e) {
-            if (e.target.matches('.category-btn')) {
-                currentCategory = e.target.dataset.category;
-                applyFiltersAndRender();
-                renderCategoryFilters();
-            }
-        }
-
-        function handleProductGridClick(e) {
-            const productCard = e.target.closest('.product-card');
-            if (!productCard) return;
-            const productName = productCard.dataset.name;
-
-            if (e.target.matches('.add-to-cart-btn')) {
-                addProductToCart(productName);
-            } else if (e.target.matches('.product-image')) {
-                showImageModal(e.target.src);
-            } else if (e.target.matches('.product-title')) {
-                showProductDetail(productName);
-            }
-        }
-        
-        function handleCartItemsClick(e) {
-             if (e.target.classList.contains('remove-from-cart-btn')) {
-                const name = e.target.dataset.name;
-                if(cart[name]?.quantity > 1) cart[name].quantity--;
-                else delete cart[name];
-                updateCartUI();
-            }
-        }
-        
-        function handlePurchase() {
-            if (Object.keys(cart).length > 0) {
-                const orderData = {
-                    items: cart,
-                    total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0)
-                };
-                Telegram.WebApp.sendData(JSON.stringify(orderData));
-                Telegram.WebApp.showAlert('Your order has been sent!');
-                cart = {};
-                updateCartUI();
-                cartPane.classList.add('translate-y-full');
-            } else {
-                Telegram.WebApp.showAlert('Your cart is empty!');
-            }
-        }
-
-        function handleDetailAddToCart() {
-            const productName = detailAddToCartBtn.dataset.name;
-            addProductToCart(productName);
-        }
-
-        function addProductToCart(productName) {
-            const product = allProducts.find(p => p.name === productName);
-            if (!product) return;
-            
-            if ((cart[productName]?.quantity || 0) >= product.stock) {
-                Telegram.WebApp.showAlert(`No more stock available for ${productName}.`);
-                return;
-            }
-            if (cart[productName]) {
-                cart[productName].quantity++;
-            } else {
-                const hasDiscount = product.discount > 0;
-                const originalPrice = product.basePrice * product.amount;
-                const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice;
-                cart[productName] = { price: finalPrice, quantity: 1, stock: product.stock };
-            }
-            updateCartUI();
-        }
-        
+        // --- UI Update & View Management ---
         function showProductDetail(productName) {
             const product = allProducts.find(p => p.name === productName);
             if (!product) return;
+
             detailHeaderTitle.textContent = product.name;
+
+            // --- MODIFICATION: Changed 'object-contain' to 'object-cover' ---
             const imagesHtml = product.images.length > 0 ? product.images.map(img => 
                 `<div class="slider-item w-full h-80 flex-shrink-0 bg-white flex items-center justify-center">
-                    <img src="${img}" alt="${product.name}" class="w-full h-full object-contain" loading="lazy" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png';">
+                    <img src="${img}" alt="${product.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png';">
                 </div>`
-            ).join('') : `<div class="w-full h-80 bg-white flex items-center justify-center"><img src="https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png" alt="${product.name}" class="w-full h-full object-contain"></div>`;
+            ).join('') : `<div class="w-full h-80 bg-white flex items-center justify-center"><img src="https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png" alt="${product.name}" class="w-full h-full object-cover"></div>`;
+
             const sliderDotsHtml = product.images.length > 1 ? `
                 <div class="slider-dots absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
                     ${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-black bg-opacity-30 ${i === 0 ? 'bg-opacity-75' : ''}"></div>`).join('')}
                 </div>` : '';
-            detailImageContainer.innerHTML = `<div class="slider-container flex overflow-x-auto snap-x snap-mandatory">${imagesHtml}</div>${sliderDotsHtml}`;
-            detailTitle.textContent = product.name;
+            
             const hasDiscount = product.discount > 0;
             const originalPrice = product.basePrice * product.amount;
             const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice;
+
+            const discountBannerHtml = hasDiscount ? `
+                <div class="absolute top-0 right-0 bg-orange-500 text-white text-sm font-bold px-4 py-1.5 rounded-bl-xl z-10">
+                    SAVE ${formatCurrency(product.discount)}
+                </div>
+            ` : '';
+            
+            detailImageContainer.innerHTML = `<div class="slider-container flex overflow-x-auto snap-x snap-mandatory">${imagesHtml}</div>${sliderDotsHtml}${discountBannerHtml}`;
+            
+            detailTitle.textContent = product.name;
             detailPrice.innerHTML = `${finalPrice.toLocaleString('en-US')} MMK ${hasDiscount ? `<span class="text-lg text-gray-500 line-through ml-2">${originalPrice.toLocaleString('en-US')} MMK</span>` : ''}`;
+            
             const isOutOfStock = !product.stock || product.stock <= 0;
             detailStock.textContent = isOutOfStock ? 'Sold Out' : `In Stock: ${product.stock}`;
             detailStock.className = `font-semibold text-lg mb-6 ${isOutOfStock ? 'text-red-500' : 'text-green-600'}`;
             detailDescription.textContent = product.description;
+
             detailAddToCartBtn.dataset.name = product.name;
             detailAddToCartBtn.disabled = isOutOfStock;
             detailAddToCartBtn.textContent = isOutOfStock ? 'Out of Stock' : 'Add to Cart';
+
             productDetailView.classList.remove('translate-x-full');
             document.body.style.overflow = 'hidden';
+
             const slider = detailImageContainer.querySelector('.slider-container');
             if(slider && product.images.length > 1) {
                 slider.addEventListener('scroll', () => {
@@ -446,92 +306,40 @@
                 });
             }
         }
-
-        function hideProductDetail() {
-            productDetailView.classList.add('translate-x-full');
-            document.body.style.overflow = 'auto';
-        }
         
-        function formatCurrency(price) { return price.toLocaleString('en-US') + ' MMK'; }
-
+        // --- Telegram Integration ---
         Telegram.WebApp.ready();
         
-        // --- Unchanged utility functions ---
-        function renderPaginationControls() {
-            paginationControls.innerHTML = '';
-            const totalPages = Math.ceil(currentProductList.length / itemsPerPage);
-            if (totalPages <= 1) return;
-            const prevButton = createPaginationButton('Prev', currentPage > 1, () => { if (currentPage > 1) { currentPage--; renderPage(); } });
-            prevButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`;
-            paginationControls.appendChild(prevButton);
-            for (let i = 1; i <= totalPages; i++) {
-                const pageButton = createPaginationButton(i, true, () => { currentPage = i; renderPage(); }, i === currentPage);
-                paginationControls.appendChild(pageButton);
-            }
-            const nextButton = createPaginationButton('Next', currentPage < totalPages, () => { if (currentPage < totalPages) { currentPage++; renderPage(); } });
-            nextButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`;
-            paginationControls.appendChild(nextButton);
-        }
-        function renderCategoryFilters() {
-            categoryFiltersContainer.innerHTML = '';
-            categories.forEach(cat => {
-                const button = document.createElement('button');
-                button.textContent = cat;
-                button.dataset.category = cat;
-                const isActive = cat === currentCategory;
-                button.className = `category-btn px-4 py-2 rounded-full font-semibold text-sm focus:outline-none ${isActive ? 'bg-lime-500 text-white shadow' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`;
-                categoryFiltersContainer.appendChild(button);
-            });
-        }
-        function createPaginationButton(text, enabled, onClick, isActive = false) {
-            const button = document.createElement('button');
-            button.textContent = text;
-            const baseClasses = 'px-3 py-2 sm:px-4 rounded-lg font-semibold transition-colors duration-200';
-            const activeClasses = 'bg-lime-500 text-white';
-            const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300';
-            const disabledClasses = 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200';
-            button.className = `${baseClasses} ${enabled ? (isActive ? activeClasses : inactiveClasses) : disabledClasses}`;
-            button.disabled = !enabled;
-            if (enabled) button.addEventListener('click', onClick);
-            return button;
-        }
-        function showImageModal(src) {
-            modalImage.src = src;
-            imageModal.classList.remove('hidden');
-            setTimeout(() => modalContent.style.transform = 'scale(1)', 10);
-        }
-        function hideImageModal() {
-            modalContent.style.transform = 'scale(0.95)';
-            setTimeout(() => imageModal.classList.add('hidden'), 300);
-        }
-        function convertDriveUrl(url) {
-            if (url && url.includes('drive.google.com/file/d/')) {
-                const fileId = url.split('/d/')[1].split('/')[0];
-                return `https://drive.google.com/uc?export=view&id=${fileId}`;
-            }
-             if (url && url.includes('github.com')) {
-                return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
-            }
-            return url;
-        }
-        function updateCartUI() {
-            cartItemsContainer.innerHTML = '';
-            let totalPrice = 0;
-            let totalItems = 0;
-            const sortedCartItems = Object.entries(cart).sort((a, b) => a[0].localeCompare(b[0]));
-            for (const [name, item] of sortedCartItems) {
-                const itemTotal = item.price * item.quantity;
-                totalPrice += itemTotal;
-                totalItems += item.quantity;
-                const cartItemEl = document.createElement('div');
-                cartItemEl.className = 'flex justify-between items-center mb-3 p-3 rounded-xl bg-gray-100';
-                cartItemEl.innerHTML = `<div><p class="font-semibold text-gray-800">${name}</p><p class="text-gray-600 text-sm">${item.quantity} &times; ${formatCurrency(item.price)}</p></div><div class="flex items-center"><p class="mr-4 font-bold text-gray-800">${formatCurrency(itemTotal)}</p><button class="remove-from-cart-btn bg-red-500 text-white w-7 h-7 rounded-lg flex items-center justify-center font-bold hover:bg-red-600 transition-colors" data-name="${name}">-</button></div>`;
-                cartItemsContainer.appendChild(cartItemEl);
-            }
-            totalPriceEl.textContent = formatCurrency(totalPrice);
-            cartCount.textContent = totalItems;
-            cartIcon.classList.toggle('hidden', totalItems === 0);
-        }
+        // --- PASTE OF UNCHANGED FUNCTIONS ---
+        // To keep the response shorter, the other JS functions that were not modified are omitted here,
+        // but they are included in the full script block above.
+        // applyFiltersAndRender(), renderPage(), renderProducts(), handleSearch(), clearSearch(), etc.
+        // are all the same as the previous version.
+
+        function renderProducts(productsToRender) { productGrid.innerHTML = ''; if (productsToRender.length === 0) { productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">No products found.</p>`; return; } productsToRender.forEach((product, index) => { const productEl = document.createElement('div'); const isOutOfStock = !product.stock || product.stock <= 0; const hasDiscount = product.discount > 0; const originalPrice = product.basePrice * product.amount; const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice; const imagesHtml = product.images.length > 0 ? product.images.map(img => `<div class="slider-item w-full h-48 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer rounded-t-xl"><img src="${img}" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl product-image" loading="lazy" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png';"></div>`).join('') : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-xl"><img src="https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl product-image"></div>`; const sliderDotsHtml = product.images.length > 1 ? `<div class="slider-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2">${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-black bg-opacity-30 ${i === 0 ? 'bg-opacity-75' : ''}" data-index="${i}"></div>`).join('')}</div>` : ''; productEl.className = `product-card relative flex flex-col bg-white rounded-xl shadow-md overflow-hidden ${hasDiscount ? 'border-2 border-orange-500' : ''}`; productEl.dataset.name = product.name; productEl.innerHTML = `<div class="relative"><div class="slider-container flex overflow-x-auto snap-x snap-mandatory">${imagesHtml}</div>${sliderDotsHtml}${hasDiscount ? `<div class="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl z-10">SAVE ${formatCurrency(product.discount)}</div>` : ''}</div><div class="p-4 flex flex-col flex-1"><div class="flex-1"><h3 class="font-semibold text-gray-800 line-clamp-2 cursor-pointer hover:text-lime-600 product-title" style="min-height: 2.75rem;">${product.name}</h3><div class="mt-2"><p class="font-bold text-xl text-lime-600">${finalPrice.toLocaleString('en-US')} MMK</p>${hasDiscount ? `<p class="text-sm text-gray-500 line-through -mt-1">${originalPrice.toLocaleString('en-US')} MMK</p>` : ''}</div></div><div class="mt-4"><p class="text-sm font-medium ${isOutOfStock ? 'text-red-500' : 'text-green-600'}">Stock: ${isOutOfStock ? 'Sold Out' : product.stock}</p><button class="add-to-cart-btn text-white w-full mt-2 py-2.5 rounded-lg font-semibold transition-colors ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'}" ${isOutOfStock ? 'disabled' : ''}>${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</button></div></div>`; productGrid.appendChild(productEl); const slider = productEl.querySelector('.slider-container'); if (slider && product.images.length > 1) { slider.addEventListener('scroll', () => { const activeIndex = Math.round(slider.scrollLeft / slider.offsetWidth); slider.parentElement.querySelectorAll('.dot').forEach((dot, i) => { dot.classList.toggle('bg-opacity-75', i === activeIndex); dot.classList.toggle('bg-opacity-30', i !== activeIndex); }); }); } }); }
+        applyFiltersAndRender = function() { const searchTerm = searchInput.value.toLowerCase().trim(); let filteredProducts = allProducts; if (currentCategory !== 'All') { filteredProducts = filteredProducts.filter(p => p.category === currentCategory); } if (searchTerm) { filteredProducts = filteredProducts.filter(p => p.name.toLowerCase().includes(searchTerm)); } currentProductList = filteredProducts; currentPage = 1; renderPage(); }
+        renderPage = function() { productGrid.style.opacity = 0; setTimeout(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); const startIndex = (currentPage - 1) * itemsPerPage; const endIndex = startIndex + itemsPerPage; const paginatedProducts = currentProductList.slice(startIndex, endIndex); renderProducts(paginatedProducts); renderPaginationControls(); productGrid.style.opacity = 1; }, 300); }
+        handleSearch = function(e) { searchClearBtn.classList.toggle('hidden', e.target.value.length === 0); applyFiltersAndRender(); }
+        clearSearch = function() { searchInput.value = ''; searchClearBtn.classList.add('hidden'); applyFiltersAndRender(); searchInput.focus(); }
+        handleCategoryFilterClick = function(e) { if (e.target.matches('.category-btn')) { currentCategory = e.target.dataset.category; applyFiltersAndRender(); renderCategoryFilters(); } }
+        handleProductGridClick = function(e) { const productCard = e.target.closest('.product-card'); if (!productCard) return; const productName = productCard.dataset.name; if (e.target.matches('.add-to-cart-btn')) { addProductToCart(productName); } else if (e.target.matches('.product-image')) { showImageModal(e.target.src); } else if (e.target.matches('.product-title')) { showProductDetail(productName); } }
+        handleCartItemsClick = function(e) { if (e.target.classList.contains('remove-from-cart-btn')) { const name = e.target.dataset.name; if(cart[name]?.quantity > 1) cart[name].quantity--; else delete cart[name]; updateCartUI(); } }
+        handlePurchase = function() { if (Object.keys(cart).length > 0) { const orderData = { items: cart, total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0) }; Telegram.WebApp.sendData(JSON.stringify(orderData)); Telegram.WebApp.showAlert('Your order has been sent!'); cart = {}; updateCartUI(); cartPane.classList.add('translate-y-full'); } else { Telegram.WebApp.showAlert('Your cart is empty!'); } }
+        handleDetailAddToCart = function() { const productName = detailAddToCartBtn.dataset.name; addProductToCart(productName); }
+        handleSwipeStart = function(e) { const touch = e.touches[0]; if (touch.clientX < EDGE_START_THRESHOLD) { touchStartX = touch.clientX; touchStartY = touch.clientY; } else { touchStartX = 0; touchStartY = 0; } }
+        handleSwipeMove = function(e) { if (touchStartX === 0) return; const touch = e.touches[0]; const diffX = touch.clientX - touchStartX; const diffY = touch.clientY - touchStartY; if (Math.abs(diffY) > Math.abs(diffX)) { touchStartX = 0; touchStartY = 0; } }
+        handleSwipeEnd = function(e) { if (touchStartX === 0) return; const touch = e.changedTouches[0]; const diffX = touch.clientX - touchStartX; if (diffX > SWIPE_BACK_THRESHOLD) { hideProductDetail(); } touchStartX = 0; touchStartY = 0; }
+        addProductToCart = function(productName) { const product = allProducts.find(p => p.name === productName); if (!product) return; if ((cart[productName]?.quantity || 0) >= product.stock) { Telegram.WebApp.showAlert(`No more stock available for ${productName}.`); return; } if (cart[productName]) { cart[productName].quantity++; } else { const hasDiscount = product.discount > 0; const originalPrice = product.basePrice * product.amount; const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice; cart[productName] = { price: finalPrice, quantity: 1, stock: product.stock }; } updateCartUI(); }
+        hideProductDetail = function() { productDetailView.classList.add('translate-x-full'); document.body.style.overflow = 'auto'; }
+        formatCurrency = function(price) { return price.toLocaleString('en-US') + ' MMK'; }
+        renderPaginationControls = function() { paginationControls.innerHTML = ''; const totalPages = Math.ceil(currentProductList.length / itemsPerPage); if (totalPages <= 1) return; const prevButton = createPaginationButton('Prev', currentPage > 1, () => { if (currentPage > 1) { currentPage--; renderPage(); } }); prevButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`; paginationControls.appendChild(prevButton); for (let i = 1; i <= totalPages; i++) { const pageButton = createPaginationButton(i, true, () => { currentPage = i; renderPage(); }, i === currentPage); paginationControls.appendChild(pageButton); } const nextButton = createPaginationButton('Next', currentPage < totalPages, () => { if (currentPage < totalPages) { currentPage++; renderPage(); } }); nextButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`; paginationControls.appendChild(nextButton); }
+        renderCategoryFilters = function() { categoryFiltersContainer.innerHTML = ''; categories.forEach(cat => { const button = document.createElement('button'); button.textContent = cat; button.dataset.category = cat; const isActive = cat === currentCategory; button.className = `category-btn px-4 py-2 rounded-full font-semibold text-sm focus:outline-none ${isActive ? 'bg-lime-500 text-white shadow' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`; categoryFiltersContainer.appendChild(button); }); }
+        createPaginationButton = function(text, enabled, onClick, isActive = false) { const button = document.createElement('button'); button.textContent = text; const baseClasses = 'px-3 py-2 sm:px-4 rounded-lg font-semibold transition-colors duration-200'; const activeClasses = 'bg-lime-500 text-white'; const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'; const disabledClasses = 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'; button.className = `${baseClasses} ${enabled ? (isActive ? activeClasses : inactiveClasses) : disabledClasses}`; button.disabled = !enabled; if (enabled) button.addEventListener('click', onClick); return button; }
+        showImageModal = function(src) { modalImage.src = src; imageModal.classList.remove('hidden'); setTimeout(() => modalContent.style.transform = 'scale(1)', 10); }
+        hideImageModal = function() { modalContent.style.transform = 'scale(0.95)'; setTimeout(() => imageModal.classList.add('hidden'), 300); }
+        convertDriveUrl = function(url) { if (url && url.includes('drive.google.com/file/d/')) { const fileId = url.split('/d/')[1].split('/')[0]; return `https://drive.google.com/uc?export=view&id=${fileId}`; } if (url && url.includes('github.com')) { return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/'); } return url; }
+        updateCartUI = function() { cartItemsContainer.innerHTML = ''; let totalPrice = 0; let totalItems = 0; const sortedCartItems = Object.entries(cart).sort((a, b) => a[0].localeCompare(b[0])); for (const [name, item] of sortedCartItems) { const itemTotal = item.price * item.quantity; totalPrice += itemTotal; totalItems += item.quantity; const cartItemEl = document.createElement('div'); cartItemEl.className = 'flex justify-between items-center mb-3 p-3 rounded-xl bg-gray-100'; cartItemEl.innerHTML = `<div><p class="font-semibold text-gray-800">${name}</p><p class="text-gray-600 text-sm">${item.quantity} &times; ${formatCurrency(item.price)}</p></div><div class="flex items-center"><p class="mr-4 font-bold text-gray-800">${formatCurrency(itemTotal)}</p><button class="remove-from-cart-btn bg-red-500 text-white w-7 h-7 rounded-lg flex items-center justify-center font-bold hover:bg-red-600 transition-colors" data-name="${name}">-</button></div>`; cartItemsContainer.appendChild(cartItemEl); } totalPriceEl.textContent = formatCurrency(totalPrice); cartCount.textContent = totalItems; cartIcon.classList.toggle('hidden', totalItems === 0); }
+
     </script>
 </body>
 </html>
