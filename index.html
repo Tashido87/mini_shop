@@ -6,25 +6,26 @@
     <title>Mini Shop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8f9fa;
+            font-family: 'Lato', sans-serif;
+            background-color: #f7fafc;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Poppins', sans-serif;
         }
         #cart {
             transition: transform 0.3s ease-in-out;
         }
-        /* Styles for the image slider */
         .slider-container {
             scroll-snap-type: x mandatory;
             scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch; /* for smooth scrolling on iOS */
+            -webkit-overflow-scrolling: touch;
         }
         .slider-item {
             scroll-snap-align: start;
         }
-        /* Style to clamp long titles to 2 lines */
         .line-clamp-2 {
             display: -webkit-box;
             -webkit-box-orient: vertical;
@@ -33,27 +34,40 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        /* Styles for active category button */
-        .category-btn-active {
-            background-color: #16a34a; /* green-600 */
-            color: white;
+        .product-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
-        /* Styles for the success overlay transition */
-        #success-overlay {
-            transition: opacity 0.3s ease-in-out;
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        #product-grid {
+            transition: opacity 0.4s ease-in-out;
+        }
+        .category-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        /* Hide scrollbar for slider containers */
+        .slider-container::-webkit-scrollbar {
+            display: none;
+        }
+        .slider-container {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
         }
     </style>
 </head>
-<body class="bg-white">
+<body class="bg-gray-50">
 
     <div id="app-container">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <header class="mb-6 max-w-xl mx-auto">
-                <h1 class="text-4xl font-bold text-gray-900 text-center">Mini Shop</h1>
-                <div class="relative mt-4">
-                    <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                    <input type="text" id="search-input" placeholder="Search for products..." class="w-full bg-gray-100 border-2 border-gray-200 rounded-lg py-2 pl-10 pr-10 focus:outline-none focus:border-green-500">
-                    <button id="search-clear-btn" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+            <header class="mb-8 max-w-2xl mx-auto text-center">
+                <h1 class="text-5xl font-bold text-gray-800">Mini Shop</h1>
+                <p class="mt-2 text-lg text-gray-600">Your one-stop shop for everything</p>
+                <div class="relative mt-6">
+                    <svg class="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                    <input type="text" id="search-input" placeholder="Search for products..." class="w-full bg-white border-2 border-gray-300 rounded-full py-3 pl-12 pr-12 focus:outline-none focus:border-lime-500 transition-colors">
+                    <button id="search-clear-btn" class="hidden absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -61,48 +75,64 @@
                 </div>
             </header>
 
-            <div id="category-filters" class="flex flex-wrap justify-center gap-2 mb-8">
-                </div>
+            <div id="category-filters" class="flex flex-wrap justify-center gap-2 mt-6 mb-8"></div>
 
-            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 pb-4">
-                 <p class="col-span-full text-center text-gray-500">Loading products...</p>
-            </div>
-            
-            <div id="pagination-controls" class="flex justify-center items-center gap-4 mt-8 pb-16">
-                </div>
+            <div id="product-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-8"></div>
+
+            <div id="pagination-controls" class="flex justify-center items-center space-x-1 sm:space-x-2 mt-12 mb-12"></div>
         </div>
         
-        <div id="cart-icon" class="hidden fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-lg cursor-pointer z-10">
+        <div id="cart-icon" class="hidden fixed bottom-8 right-8 bg-lime-500 text-white p-4 rounded-full shadow-lg cursor-pointer z-50 hover:bg-lime-600 transition-transform transform hover:scale-110">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
-            <span id="cart-count" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">0</span>
+            <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full px-2 py-1">0</span>
         </div>
-        <div id="cart" class="fixed bottom-0 left-0 right-0 bg-white p-4 shadow-lg rounded-t-2xl transition-transform translate-y-full z-20 md:w-96 md:left-auto md:rounded-l-2xl md:rounded-tr-none">
-            <h2 class="text-2xl font-bold mb-4">Your Cart</h2>
-            <div id="cart-items" class="mb-4 max-h-60 overflow-y-auto"></div>
-            <div class="flex justify-between items-center mb-4">
-                <p class="text-xl font-semibold">Total: <span id="total-price">0 MMK</span></p>
-                <button id="purchase-btn" class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600">Purchase</button>
+        <div id="cart" class="fixed bottom-0 left-0 right-0 bg-white p-6 shadow-2xl rounded-t-3xl transition-transform translate-y-full z-50 md:w-96 md:left-auto md:rounded-l-3xl md:rounded-tr-none">
+            <h2 class="text-3xl font-bold mb-6 text-gray-800">Your Cart</h2>
+            <div id="cart-items" class="mb-6 max-h-72 overflow-y-auto pr-2"></div>
+            <div class="border-t pt-4">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-xl font-semibold text-gray-800">Total:</p>
+                    <p id="total-price" class="text-2xl font-bold text-gray-900">0 MMK</p>
+                </div>
+                <button id="purchase-btn" class="w-full bg-lime-500 text-white px-6 py-3 rounded-xl font-semibold text-lg hover:bg-lime-600 transition-colors">Purchase</button>
             </div>
-            <button id="close-cart-btn" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800">
-                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            <button id="close-cart-btn" class="absolute top-6 right-6 text-gray-400 hover:text-gray-700">
+                <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
             </button>
         </div>
     </div>
 
-    <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-        <div class="relative">
-            <img id="modal-image" src="" alt="Enlarged product image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-lg">
-            <button id="modal-close-btn" class="absolute -top-3 -right-3 bg-white text-black rounded-full h-8 w-8 flex items-center justify-center font-bold text-xl shadow-lg">&times;</button>
+    <div id="product-detail-view" class="fixed inset-0 bg-gray-50 z-40 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+        <header class="flex-shrink-0 flex items-center justify-between p-4 bg-white border-b">
+            <button id="detail-back-btn" class="p-2 rounded-full hover:bg-gray-100">
+                <svg class="h-6 w-6 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <h2 id="detail-header-title" class="font-bold text-lg text-gray-800 truncate">Product Details</h2>
+            <div class="w-8"></div> </header>
+
+        <div class="flex-1 overflow-y-auto pb-20">
+            <div id="detail-image-slider-container" class="relative bg-white"></div>
+
+            <div class="p-5">
+                <h2 id="detail-title" class="text-3xl font-bold text-gray-800 mb-2"></h2>
+                <p id="detail-price" class="text-3xl font-bold text-lime-600 mb-4"></p>
+                <p id="detail-stock" class="font-semibold text-lg mb-6"></p>
+
+                <h3 class="text-xl font-bold text-gray-800 border-b pb-2 mb-3">Description</h3>
+                <p id="detail-description" class="text-gray-600 leading-relaxed"></p>
+            </div>
         </div>
+
+        <footer class="flex-shrink-0 p-4 bg-white border-t">
+            <button id="detail-add-to-cart-btn" class="w-full bg-lime-500 text-white px-6 py-4 rounded-xl font-semibold text-lg hover:bg-lime-600 transition-colors disabled:bg-gray-400">Add to Cart</button>
+        </footer>
     </div>
 
-    <div id="success-overlay" class="hidden opacity-0 fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white p-8 rounded-lg shadow-xl text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-green-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 class="text-2xl font-bold text-gray-800">Order Sent!</h2>
-            <p class="text-gray-600 mt-2">Thank you for your purchase.</p>
+
+    <div id="image-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 p-4 transition-opacity duration-300">
+        <div class="relative transform scale-95 transition-transform duration-300">
+            <img id="modal-image" src="" alt="Enlarged product image" class="max-w-[90vw] max-h-[90vh] object-contain rounded-xl shadow-2xl">
+            <button id="modal-close-btn" class="absolute -top-4 -right-4 bg-white text-black rounded-full h-10 w-10 flex items-center justify-center font-bold text-2xl shadow-lg hover:scale-110 transition-transform">×</button>
         </div>
     </div>
 
@@ -112,18 +142,21 @@
         const INVENTORY_SHEET = 'Inventory';
 
         let allProducts = [];
+        let currentProductList = [];
         let cart = {};
-        let filteredProducts = [];
+        let categories = [];
+        let currentCategory = 'All';
         
         let currentPage = 1;
-        const productsPerPage = 10;
+        const itemsPerPage = 10;
 
         // --- DOM Elements ---
+        const appContainer = document.getElementById('app-container');
         const productGrid = document.getElementById('product-grid');
+        const paginationControls = document.getElementById('pagination-controls');
         const searchInput = document.getElementById('search-input');
         const searchClearBtn = document.getElementById('search-clear-btn');
-        const categoryFilters = document.getElementById('category-filters');
-        const paginationControls = document.getElementById('pagination-controls');
+        const categoryFiltersContainer = document.getElementById('category-filters');
         const cartIcon = document.getElementById('cart-icon');
         const cartCount = document.getElementById('cart-count');
         const cartPane = document.getElementById('cart');
@@ -131,10 +164,26 @@
         const totalPriceEl = document.getElementById('total-price');
         const purchaseBtn = document.getElementById('purchase-btn');
         const closeCartBtn = document.getElementById('close-cart-btn');
+        
         const imageModal = document.getElementById('image-modal');
         const modalImage = document.getElementById('modal-image');
         const modalCloseBtn = document.getElementById('modal-close-btn');
-        const successOverlay = document.getElementById('success-overlay'); // Get success overlay
+        const modalContent = imageModal.querySelector('.relative');
+
+        const productDetailView = document.getElementById('product-detail-view');
+        const detailBackBtn = document.getElementById('detail-back-btn');
+        const detailHeaderTitle = document.getElementById('detail-header-title');
+        const detailImageContainer = document.getElementById('detail-image-slider-container');
+        const detailTitle = document.getElementById('detail-title');
+        const detailPrice = document.getElementById('detail-price');
+        const detailStock = document.getElementById('detail-stock');
+        const detailDescription = document.getElementById('detail-description');
+        const detailAddToCartBtn = document.getElementById('detail-add-to-cart-btn');
+
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const SWIPE_BACK_THRESHOLD = 80;
+        const EDGE_START_THRESHOLD = 50; 
 
         // --- Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -142,267 +191,194 @@
             productGrid.addEventListener('click', handleProductGridClick);
             searchInput.addEventListener('input', handleSearch);
             searchClearBtn.addEventListener('click', clearSearch);
-            categoryFilters.addEventListener('click', handleCategoryFilter);
+            categoryFiltersContainer.addEventListener('click', handleCategoryFilterClick);
             cartIcon.addEventListener('click', () => cartPane.classList.remove('translate-y-full'));
             closeCartBtn.addEventListener('click', () => cartPane.classList.add('translate-y-full'));
             cartItemsContainer.addEventListener('click', handleCartItemsClick);
             purchaseBtn.addEventListener('click', handlePurchase);
-            
-            modalCloseBtn.addEventListener('click', () => imageModal.classList.add('hidden'));
-            imageModal.addEventListener('click', (e) => {
-                if (e.target.id === 'image-modal') {
-                    imageModal.classList.add('hidden');
-                }
-            });
+            modalCloseBtn.addEventListener('click', hideImageModal);
+            imageModal.addEventListener('click', (e) => e.target.id === 'image-modal' && hideImageModal());
+            detailBackBtn.addEventListener('click', hideProductDetail);
+            detailAddToCartBtn.addEventListener('click', handleDetailAddToCart);
+            productDetailView.addEventListener('touchstart', handleSwipeStart);
+            productDetailView.addEventListener('touchmove', handleSwipeMove);
+            productDetailView.addEventListener('touchend', handleSwipeEnd);
         });
-        
-        // --- Helper functions ---
-        function formatCurrency(price) {
-            return price.toLocaleString('en-US') + ' MMK';
-        }
-        
-        function convertDriveUrl(url) {
-            if (url && url.includes('drive.google.com/file/d/')) {
-                const fileId = url.split('/d/')[1].split('/')[0];
-                return `https://drive.google.com/uc?export=view&id=${fileId}`;
-            }
-            return url;
-        }
-        
-        function safeAlert(message) {
-            try {
-                if (Telegram && Telegram.WebApp) {
-                    Telegram.WebApp.showAlert(message);
-                } else {
-                    alert(message);
-                }
-            } catch(e) {
-                alert(message); // Fallback for any other error
-            }
-        }
 
-        // --- Data Fetching and Manipulation ---
+        // --- Data Fetching ---
         async function loadInventory() {
-            const publicSheetUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(INVENTORY_SHEET)}&range=A:R`;
+            productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">Loading products...</p>`;
+            const publicSheetUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(INVENTORY_SHEET)}&range=A:S`;
             try {
                 const response = await fetch(publicSheetUrl);
                 const text = await response.text();
                 const json = JSON.parse(text.substring(47).slice(0, -2));
                 
                 const productMap = new Map();
-                const categories = new Set();
                 if (json.table && json.table.rows) {
                     json.table.rows.forEach(row => {
                         if (!row.c || !row.c[10] || !row.c[10].v) return;
-
                         const title = row.c[10].v;
-                        const stock = row.c[2] ? parseInt(row.c[2].v) : 0;
-                        const category = row.c[17]?.v || 'Uncategorized';
-                        categories.add(category);
+                        const stock = row.c[2] ? parseInt(row.c[2].v, 10) : 0;
                         
                         if (productMap.has(title)) {
-                            const existing = productMap.get(title);
-                            existing.stock += stock;
+                            productMap.get(title).stock += stock;
                         } else {
-                            const price = row.c[4] ? parseFloat(row.c[4].v) : 0.0;
-                            const amount = row.c[11] ? parseInt(row.c[11].v) : 1;
-                            const discount = row.c[12] ? parseFloat(row.c[12].v) : 0;
-                            const images = [row.c[13]?.v, row.c[14]?.v, row.c[15]?.v, row.c[16]?.v].filter(Boolean).map(convertDriveUrl);
-                            productMap.set(title, { name: title, stock, category, basePrice: price, amount, discount, images });
+                            productMap.set(title, {
+                                name: title,
+                                stock,
+                                basePrice: row.c[4] ? parseFloat(row.c[4].v) : 0.0,
+                                amount: row.c[11] ? parseInt(row.c[11].v, 10) : 1,
+                                discount: row.c[12] ? parseFloat(row.c[12].v) : 0,
+                                images: [row.c[13]?.v, row.c[14]?.v, row.c[15]?.v, row.c[16]?.v].filter(Boolean).map(convertDriveUrl),
+                                category: row.c[17]?.v || 'Uncategorized',
+                                description: row.c[18]?.v || 'No description available.'
+                            });
                         }
                     });
                 }
                 
                 allProducts = Array.from(productMap.values()).filter(p => p.name && p.basePrice > 0);
                 allProducts.sort((a, b) => (b.discount > 0) - (a.discount > 0));
-                filteredProducts = [...allProducts];
-                renderCategories(Array.from(categories).sort());
-                renderPage();
 
+                categories = ['All', ...new Set(allProducts.map(p => p.category))];
+                renderCategoryFilters();
+                applyFiltersAndRender();
             } catch (err) {
                 console.error("Error loading inventory:", err);
                 productGrid.innerHTML = `<p class="col-span-full text-center text-red-500">Error loading products. Check sheet permissions and format.</p>`;
             }
         }
+        
+        // --- UI Update & View Management ---
+        function showProductDetail(productName) {
+            const product = allProducts.find(p => p.name === productName);
+            if (!product) return;
 
-        // --- UI Rendering ---
-        function renderCategories(categories) {
-            categoryFilters.innerHTML = `<button class="category-btn category-btn-active px-4 py-2 text-sm font-medium rounded-lg" data-category="All">All</button>`;
-            categories.forEach(category => {
-                categoryFilters.innerHTML += `<button class="category-btn px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300" data-category="${category}">${category}</button>`;
-            });
-        }
+            detailHeaderTitle.textContent = product.name;
 
-        function renderPage() {
-            renderProducts();
-            renderPaginationControls();
-        }
+            const imagesHtml = product.images.length > 0 ? product.images.map(img => 
+                `<div class="slider-item w-full h-80 flex-shrink-0 bg-white flex items-center justify-center">
+                    <img src="${img}" alt="${product.name}" class="w-full h-full object-cover" loading="lazy" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png';">
+                </div>`
+            ).join('') : `<div class="w-full h-80 bg-white flex items-center justify-center"><img src="https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png" alt="${product.name}" class="w-full h-full object-cover"></div>`;
 
-        function renderProducts() {
-            productGrid.innerHTML = '';
-            const startIndex = (currentPage - 1) * productsPerPage;
-            const endIndex = startIndex + productsPerPage;
-            const productsToRender = filteredProducts.slice(startIndex, endIndex);
+            const sliderDotsHtml = product.images.length > 1 ? `
+                <div class="slider-dots absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2">
+                    ${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-black bg-opacity-30 ${i === 0 ? 'bg-opacity-75' : ''}"></div>`).join('')}
+                </div>` : '';
+            
+            const hasDiscount = product.discount > 0;
+            const originalPrice = product.basePrice * product.amount;
+            const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice;
 
-            if (productsToRender.length === 0) {
-                productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">No products found.</p>`;
-                return;
-            }
-            productsToRender.forEach((product, index) => {
-                const productEl = document.createElement('div');
-                const isOutOfStock = !product.stock || product.stock <= 0;
-                const hasDiscount = product.discount > 0;
-                const originalPrice = product.basePrice * product.amount;
-                const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice;
-                const imagesHtml = product.images.length > 0 ? product.images.map(img => `<div class="slider-item w-full h-48 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer"><img src="${img}" alt="${product.name}" class="w-full h-full object-cover" onerror="this.onerror=null;this.src='https://placehold.co/400x400/CCCCCC/FFFFFF?text=No+Image';"></div>`).join('') : `<div class="w-full h-48 bg-white flex items-center justify-center"><img src="https://placehold.co/400x400/CCCCCC/FFFFFF?text=No+Image" alt="${product.name}" class="w-full h-full object-cover"></div>`;
-                const sliderDotsHtml = product.images.length > 1 ? `<div class="slider-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2">${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-white bg-opacity-50 ${i === 0 ? 'bg-opacity-100' : ''}" data-index="${i}"></div>`).join('')}</div>` : '';
-                const discountBannerHtml = hasDiscount ? `<div class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-bl-lg rounded-tr-lg z-10">-${formatCurrency(product.discount)}</div>` : '';
+            const discountBannerHtml = hasDiscount ? `
+                <div class="absolute top-0 right-0 bg-orange-500 text-white text-sm font-bold px-4 py-1.5 rounded-bl-xl z-10">
+                    SAVE ${formatCurrency(product.discount)}
+                </div>
+            ` : '';
+            
+            detailImageContainer.innerHTML = `<div class="slider-container flex overflow-x-auto snap-x snap-mandatory">${imagesHtml}</div>${sliderDotsHtml}${discountBannerHtml}`;
+            
+            detailTitle.textContent = product.name;
+            detailPrice.innerHTML = `${finalPrice.toLocaleString('en-US')} MMK ${hasDiscount ? `<span class="text-lg text-gray-500 line-through ml-2">${originalPrice.toLocaleString('en-US')} MMK</span>` : ''}`;
+            
+            const isOutOfStock = !product.stock || product.stock <= 0;
+            detailStock.textContent = isOutOfStock ? 'Sold Out' : `In Stock: ${product.stock}`;
+            detailStock.className = `font-semibold text-lg mb-6 ${isOutOfStock ? 'text-red-500' : 'text-green-600'}`;
+            detailDescription.textContent = product.description;
 
-                productEl.className = `relative flex flex-col bg-gray-100 rounded-lg shadow overflow-hidden ${hasDiscount ? 'border-2 border-yellow-400' : ''}`;
-                productEl.innerHTML = `<div class="relative"><div class="slider-container flex overflow-x-auto snap-x snap-mandatory rounded-t-lg" id="slider-${index}">${imagesHtml}</div>${sliderDotsHtml}${discountBannerHtml}</div><div class="p-4 flex flex-col flex-1"><div><h3 class="font-semibold text-gray-800 line-clamp-2" style="min-height: 2.5rem;">${product.name}</h3><div class="mt-1">${hasDiscount ? `<p class="text-sm text-gray-500 line-through">${formatCurrency(originalPrice)}</p>` : ''}<p class="font-bold text-lg text-gray-900">${formatCurrency(finalPrice)}</p></div><p class="text-sm font-medium ${isOutOfStock ? 'text-red-500' : 'text-gray-600'}">Stock: ${product.stock}</p></div><div class="mt-auto pt-3"><button class="add-to-cart-btn text-white w-full py-2 rounded-lg ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-500 hover:bg-green-600'}" data-name="${product.name}" data-price="${finalPrice}" data-stock="${product.stock}" ${isOutOfStock ? 'disabled' : ''}>${isOutOfStock ? 'Out of Stock' : 'Add'}</button></div></div>`;
-                productGrid.appendChild(productEl);
+            detailAddToCartBtn.dataset.name = product.name;
+            detailAddToCartBtn.disabled = isOutOfStock;
+            detailAddToCartBtn.textContent = isOutOfStock ? 'Out of Stock' : 'Add to Cart';
 
-                const slider = document.getElementById(`slider-${index}`);
-                if (slider && product.images.length > 1) {
-                    slider.addEventListener('scroll', () => {
-                        const scrollLeft = slider.scrollLeft;
-                        const itemWidth = slider.offsetWidth;
-                        const activeIndex = Math.round(scrollLeft / itemWidth);
-                        slider.parentElement.querySelectorAll('.dot').forEach((dot, i) => { dot.classList.toggle('bg-opacity-100', i === activeIndex); dot.classList.toggle('bg-opacity-50', i !== activeIndex); });
+            productDetailView.classList.remove('translate-x-full');
+            document.body.style.overflow = 'hidden';
+
+            const slider = detailImageContainer.querySelector('.slider-container');
+            if(slider && product.images.length > 1) {
+                slider.addEventListener('scroll', () => {
+                    const activeIndex = Math.round(slider.scrollLeft / slider.offsetWidth);
+                    detailImageContainer.querySelectorAll('.dot').forEach((dot, i) => {
+                        dot.classList.toggle('bg-opacity-75', i === activeIndex);
+                        dot.classList.toggle('bg-opacity-30', i !== activeIndex);
                     });
-                }
-            });
-        }
-
-        function renderPaginationControls() {
-            paginationControls.innerHTML = '';
-            const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-            if (totalPages <= 1) return;
-            let paginationHtml = `<button id="prev-page-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>`;
-            paginationHtml += `<span class="text-sm text-gray-700">Page ${currentPage} of ${totalPages}</span>`;
-            paginationHtml += `<button id="next-page-btn" class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>`;
-            paginationControls.innerHTML = paginationHtml;
-            document.getElementById('prev-page-btn')?.addEventListener('click', () => { if (currentPage > 1) { currentPage--; renderPage(); } });
-            document.getElementById('next-page-btn')?.addEventListener('click', () => { if (currentPage < totalPages) { currentPage++; renderPage(); } });
-        }
-
-        // --- Event Handlers ---
-        function handleCategoryFilter(e) {
-            if (e.target.classList.contains('category-btn')) {
-                document.querySelectorAll('.category-btn').forEach(btn => btn.classList.remove('category-btn-active'));
-                e.target.classList.add('category-btn-active');
-                
-                const selectedCategory = e.target.dataset.category;
-                const productsByCategory = (selectedCategory === 'All') ? allProducts : allProducts.filter(p => p.category === selectedCategory);
-                
-                const searchTerm = searchInput.value.toLowerCase();
-                filteredProducts = productsByCategory.filter(p => p.name.toLowerCase().includes(searchTerm));
-                
-                currentPage = 1;
-                renderPage();
-            }
-        }
-
-
-        function handleProductGridClick(e) {
-            const addToCartButton = e.target.closest('.add-to-cart-btn');
-            const imageElement = e.target.closest('.slider-item img');
-            if (addToCartButton) {
-                const name = addToCartButton.dataset.name;
-                const price = parseFloat(addToCartButton.dataset.price);
-                const stock = parseInt(addToCartButton.dataset.stock);
-                if (cart[name]?.quantity >= stock) { safeAlert(`No more stock available for ${name}.`); return; }
-                cart[name] ? cart[name].quantity++ : cart[name] = { price, quantity: 1, stock };
-                updateCartUI();
-            } else if (imageElement) {
-                modalImage.src = imageElement.src;
-                imageModal.classList.remove('hidden');
+                });
             }
         }
         
-        function handleSearch(e) {
-            const searchTerm = e.target.value.toLowerCase();
-            searchClearBtn.classList.toggle('hidden', searchTerm.length === 0);
-            
-            const activeCategoryBtn = document.querySelector('.category-btn-active');
-            const selectedCategory = activeCategoryBtn.dataset.category;
-            
-            let productsToSearch = (selectedCategory === 'All') ? allProducts : allProducts.filter(p => p.category === selectedCategory);
-            
-            filteredProducts = productsToSearch.filter(p => p.name.toLowerCase().includes(searchTerm));
-            currentPage = 1;
-            renderPage();
-        }
-
-        function clearSearch() {
-            searchInput.value = '';
-            handleSearch({target: searchInput});
-        }
-
-        function handleCartItemsClick(e) {
-             if (e.target.classList.contains('remove-from-cart-btn')) {
-                const name = e.target.dataset.name;
-                if(cart[name]?.quantity > 1) { cart[name].quantity--; } else { delete cart[name]; }
-                updateCartUI();
-            }
-        }
+        // --- Telegram Integration ---
+        Telegram.WebApp.ready();
         
-        // --- [MODIFIED] handlePurchase function ---
+        // --- PASTE OF UNCHANGED FUNCTIONS ---
+        function applyFiltersAndRender() { const searchTerm = searchInput.value.toLowerCase().trim(); let filteredProducts = allProducts; if (currentCategory !== 'All') { filteredProducts = filteredProducts.filter(p => p.category === currentCategory); } if (searchTerm) { filteredProducts = filteredProducts.filter(p => p.name.toLowerCase().includes(searchTerm)); } currentProductList = filteredProducts; currentPage = 1; renderPage(); }
+        function renderPage() { productGrid.style.opacity = 0; setTimeout(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); const startIndex = (currentPage - 1) * itemsPerPage; const endIndex = startIndex + itemsPerPage; const paginatedProducts = currentProductList.slice(startIndex, endIndex); renderProducts(paginatedProducts); renderPaginationControls(); productGrid.style.opacity = 1; }, 300); }
+        function renderProducts(productsToRender) { productGrid.innerHTML = ''; if (productsToRender.length === 0) { productGrid.innerHTML = `<p class="col-span-full text-center text-gray-500">No products found.</p>`; return; } productsToRender.forEach((product, index) => { const productEl = document.createElement('div'); const isOutOfStock = !product.stock || product.stock <= 0; const hasDiscount = product.discount > 0; const originalPrice = product.basePrice * product.amount; const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice; const imagesHtml = product.images.length > 0 ? product.images.map(img => `<div class="slider-item w-full h-48 flex-shrink-0 bg-white flex items-center justify-center cursor-pointer rounded-t-xl"><img src="${img}" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl product-image" loading="lazy" onerror="this.onerror=null;this.src='https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png';"></div>`).join('') : `<div class="w-full h-48 bg-gray-200 flex items-center justify-center rounded-t-xl"><img src="https://raw.githubusercontent.com/Tashido87/mini_shop/main/images/no-image.png" alt="${product.name}" class="w-full h-full object-cover rounded-t-xl product-image"></div>`; const sliderDotsHtml = product.images.length > 1 ? `<div class="slider-dots absolute bottom-2 left-1/2 -translate-x-1/2 flex space-x-2">${product.images.map((_, i) => `<div class="dot h-2 w-2 rounded-full bg-black bg-opacity-30 ${i === 0 ? 'bg-opacity-75' : ''}" data-index="${i}"></div>`).join('')}</div>` : ''; productEl.className = `product-card relative flex flex-col bg-white rounded-xl shadow-md overflow-hidden ${hasDiscount ? 'border-2 border-orange-500' : ''}`; productEl.dataset.name = product.name; productEl.innerHTML = `<div class="relative"><div class="slider-container flex overflow-x-auto snap-x snap-mandatory">${imagesHtml}</div>${sliderDotsHtml}${hasDiscount ? `<div class="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-xl rounded-tr-xl z-10">SAVE ${formatCurrency(product.discount)}</div>` : ''}</div><div class="p-4 flex flex-col flex-1"><div class="flex-1"><h3 class="font-semibold text-gray-800 line-clamp-2 cursor-pointer hover:text-lime-600 product-title" style="min-height: 2.75rem;">${product.name}</h3><div class="mt-2"><p class="font-bold text-xl text-lime-600">${finalPrice.toLocaleString('en-US')} MMK</p>${hasDiscount ? `<p class="text-sm text-gray-500 line-through -mt-1">${originalPrice.toLocaleString('en-US')} MMK</p>` : ''}</div></div><div class="mt-4"><p class="text-sm font-medium ${isOutOfStock ? 'text-red-500' : 'text-green-600'}">Stock: ${isOutOfStock ? 'Sold Out' : product.stock}</p><button class="add-to-cart-btn text-white w-full mt-2 py-2.5 rounded-lg font-semibold transition-colors ${isOutOfStock ? 'bg-gray-400 cursor-not-allowed' : 'bg-lime-500 hover:bg-lime-600'}" ${isOutOfStock ? 'disabled' : ''}>${isOutOfStock ? 'Out of Stock' : 'Add to Cart'}</button></div></div>`; productGrid.appendChild(productEl); const slider = productEl.querySelector('.slider-container'); if (slider && product.images.length > 1) { slider.addEventListener('scroll', () => { const activeIndex = Math.round(slider.scrollLeft / slider.offsetWidth); slider.parentElement.querySelectorAll('.dot').forEach((dot, i) => { dot.classList.toggle('bg-opacity-75', i === activeIndex); dot.classList.toggle('bg-opacity-30', i !== activeIndex); }); }); } }); }
+        function handleSearch(e) { searchClearBtn.classList.toggle('hidden', e.target.value.length === 0); applyFiltersAndRender(); }
+        function clearSearch() { searchInput.value = ''; searchClearBtn.classList.add('hidden'); applyFiltersAndRender(); searchInput.focus(); }
+        function handleCategoryFilterClick(e) { if (e.target.matches('.category-btn')) { currentCategory = e.target.dataset.category; applyFiltersAndRender(); renderCategoryFilters(); } }
+        function handleProductGridClick(e) { const productCard = e.target.closest('.product-card'); if (!productCard) return; const productName = productCard.dataset.name; if (e.target.matches('.add-to-cart-btn')) { addProductToCart(productName); } else if (e.target.matches('.product-image')) { showImageModal(e.target.src); } else if (e.target.matches('.product-title')) { showProductDetail(productName); } }
+        function handleCartItemsClick(e) { if (e.target.classList.contains('remove-from-cart-btn')) { const name = e.target.dataset.name; if(cart[name]?.quantity > 1) cart[name].quantity--; else delete cart[name]; updateCartUI(); } }
         function handlePurchase() {
-            const orderData = { items: cart, total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0) };
-            if (Object.keys(orderData.items).length === 0) {
-                safeAlert('Your cart is empty!');
+            if (Object.keys(cart).length === 0) {
+                Telegram.WebApp.showAlert('Your cart is empty!');
+                return;
+            }
+
+            // Get Telegram user data
+            const user = Telegram.WebApp.initDataUnsafe.user;
+            if (!user) {
+                Telegram.WebApp.showAlert('Unable to retrieve user information.');
                 return;
             }
             
-            try {
-                if (typeof Telegram.WebApp.sendData !== 'function') {
-                    throw new Error("sendData is not a function on Telegram.WebApp. Are you in the right environment?");
-                }
-                Telegram.WebApp.sendData(JSON.stringify(orderData));
+            const userId = user.id;
+            const username = user.username || user.first_name || 'Unknown';
 
-                // Show the success overlay
-                successOverlay.classList.remove('hidden');
-                setTimeout(() => successOverlay.classList.remove('opacity-0'), 10); // Fade in
+            // Prepare order data
+            const orderData = {
+                userId,
+                username,
+                items: cart,
+                total: Object.values(cart).reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            };
 
-                // Hide overlay and reset cart after 2 seconds
-                setTimeout(() => {
-                    successOverlay.classList.add('opacity-0'); // Fade out
-                    setTimeout(() => successOverlay.classList.add('hidden'), 300); // Hide after transition
-
+            // Send order to Google Apps Script web app
+            fetch('YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL', { // Replace with your web app URL
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(orderData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Telegram.WebApp.showAlert(`Order ${data.orderId} has been placed successfully!`);
                     cart = {};
                     updateCartUI();
                     cartPane.classList.add('translate-y-full');
-                }, 2000);
-
-            } catch (e) {
-                const errorMessage = e.message || JSON.stringify(e);
-                safeAlert(`Error: Could not send order. ${errorMessage}`);
-                console.error("Purchase Error:", e);
-                console.log("Order Data (browser test mode):", JSON.stringify(orderData, null, 2));
-            }
+                } else {
+                    Telegram.WebApp.showAlert('Failed to place order: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error submitting order:', error);
+                Telegram.WebApp.showAlert('An error occurred while placing your order.');
+            });
         }
-
-        function updateCartUI() {
-            cartItemsContainer.innerHTML = '';
-            let totalPrice = 0;
-            let totalItems = 0;
-            for (const name in cart) {
-                const item = cart[name];
-                const itemTotal = item.price * item.quantity;
-                totalPrice += itemTotal;
-                totalItems += item.quantity;
-                const cartItemEl = document.createElement('div');
-                cartItemEl.className = 'flex justify-between items-center mb-2 p-2 rounded-lg bg-gray-50';
-                cartItemEl.innerHTML = `<div><p class="font-semibold">${name}</p><p class="text-gray-600 text-sm">Quantity: ${item.quantity}</p></div><div class="flex items-center"><p class="mr-4 font-semibold">${formatCurrency(itemTotal)}</p><button class="remove-from-cart-btn bg-red-500 text-white w-6 h-6 rounded-md flex items-center justify-center" data-name="${name}">-</button></div>`;
-                cartItemsContainer.appendChild(cartItemEl);
-            }
-            totalPriceEl.textContent = formatCurrency(totalPrice);
-            cartCount.textContent = totalItems;
-            cartIcon.classList.toggle('hidden', totalItems === 0);
-        }
-
-        try { Telegram.WebApp.ready(); } catch(e) { console.log("Running in browser mode. Telegram.WebApp not available."); }
+        function handleDetailAddToCart() { const productName = detailAddToCartBtn.dataset.name; addProductToCart(productName); }
+        function handleSwipeStart(e) { const touch = e.touches[0]; if (touch.clientX < EDGE_START_THRESHOLD) { touchStartX = touch.clientX; touchStartY = touch.clientY; } else { touchStartX = 0; touchStartY = 0; } }
+        function handleSwipeMove(e) { if (touchStartX === 0) return; const touch = e.touches[0]; const diffX = touch.clientX - touchStartX; const diffY = touch.clientY - touchStartY; if (Math.abs(diffY) > Math.abs(diffX)) { touchStartX = 0; touchStartY = 0; } }
+        function handleSwipeEnd(e) { if (touchStartX === 0) return; const touch = e.changedTouches[0]; const diffX = touch.clientX - touchStartX; if (diffX > SWIPE_BACK_THRESHOLD) { hideProductDetail(); } touchStartX = 0; touchStartY = 0; }
+        function addProductToCart(productName) { const product = allProducts.find(p => p.name === productName); if (!product) return; if ((cart[productName]?.quantity || 0) >= product.stock) { Telegram.WebApp.showAlert(`No more stock available for ${productName}.`); return; } if (cart[productName]) { cart[productName].quantity++; } else { const hasDiscount = product.discount > 0; const originalPrice = product.basePrice * product.amount; const finalPrice = hasDiscount ? originalPrice - product.discount : originalPrice; cart[productName] = { price: finalPrice, quantity: 1, stock: product.stock }; } updateCartUI(); }
+        function hideProductDetail() { productDetailView.classList.add('translate-x-full'); document.body.style.overflow = 'auto'; }
+        function formatCurrency(price) { return price.toLocaleString('en-US') + ' MMK'; }
+        function renderPaginationControls() { paginationControls.innerHTML = ''; const totalPages = Math.ceil(currentProductList.length / itemsPerPage); if (totalPages <= 1) return; const prevButton = createPaginationButton('Prev', currentPage > 1, () => { if (currentPage > 1) { currentPage--; renderPage(); } }); prevButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>`; paginationControls.appendChild(prevButton); for (let i = 1; i <= totalPages; i++) { const pageButton = createPaginationButton(i, true, () => { currentPage = i; renderPage(); }, i === currentPage); paginationControls.appendChild(pageButton); } const nextButton = createPaginationButton('Next', currentPage < totalPages, () => { if (currentPage < totalPages) { currentPage++; renderPage(); } }); nextButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>`; paginationControls.appendChild(nextButton); }
+        function renderCategoryFilters() { categoryFiltersContainer.innerHTML = ''; categories.forEach(cat => { const button = document.createElement('button'); button.textContent = cat; button.dataset.category = cat; const isActive = cat === currentCategory; button.className = `category-btn px-4 py-2 rounded-full font-semibold text-sm focus:outline-none ${isActive ? 'bg-lime-500 text-white shadow' : 'bg-white text-gray-700 hover:bg-gray-100 border'}`; categoryFiltersContainer.appendChild(button); }); }
+        function createPaginationButton(text, enabled, onClick, isActive = false) { const button = document.createElement('button'); button.textContent = text; const baseClasses = 'px-3 py-2 sm:px-4 rounded-lg font-semibold transition-colors duration-200'; const activeClasses = 'bg-lime-500 text-white'; const inactiveClasses = 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-300'; const disabledClasses = 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'; button.className = `${baseClasses} ${enabled ? (isActive ? activeClasses : inactiveClasses) : disabledClasses}`; button.disabled = !enabled; if (enabled) button.addEventListener('click', onClick); return button; }
+        function showImageModal(src) { modalImage.src = src; imageModal.classList.remove('hidden'); setTimeout(() => modalContent.style.transform = 'scale(1)', 10); }
+        function hideImageModal() { modalContent.style.transform = 'scale(0.95)'; setTimeout(() => imageModal.classList.add('hidden'), 300); }
+        function convertDriveUrl(url) { if (url && url.includes('drive.google.com/file/d/')) { const fileId = url.split('/d/')[1].split('/')[0]; return `https://drive.google.com/uc?export=view&id=${fileId}`; } if (url && url.includes('github.com')) { return url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/'); } return url; }
+        function updateCartUI() { cartItemsContainer.innerHTML = ''; let totalPrice = 0; let totalItems = 0; const sortedCartItems = Object.entries(cart).sort((a, b) => a[0].localeCompare(b[0])); for (const [name, item] of sortedCartItems) { const itemTotal = item.price * item.quantity; totalPrice += itemTotal; totalItems += item.quantity; const cartItemEl = document.createElement('div'); cartItemEl.className = 'flex justify-between items-center mb-3 p-3 rounded-xl bg-gray-100'; cartItemEl.innerHTML = `<div><p class="font-semibold text-gray-800">${name}</p><p class="text-gray-600 text-sm">${item.quantity} × ${formatCurrency(item.price)}</p></div><div class="flex items-center"><p class="mr-4 font-bold text-gray-800">${formatCurrency(itemTotal)}</p><button class="remove-from-cart-btn bg-red-500 text-white w-7 h-7 rounded-lg flex items-center justify-center font-bold hover:bg-red-600 transition-colors" data-name="${name}">-</button></div>`; cartItemsContainer.appendChild(cartItemEl); } totalPriceEl.textContent = formatCurrency(totalPrice); cartCount.textContent = totalItems; cartIcon.classList.toggle('hidden', totalItems === 0); }
     </script>
 </body>
 </html>
